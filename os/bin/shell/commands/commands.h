@@ -14,5 +14,6 @@ extern void shell_command_echo(Shell_Arguments);
 extern void shell_command_help(Shell_Arguments);
 extern void shell_command_meminfo(Shell_Arguments);
 extern void shell_command_ded(Shell_Arguments);
+extern void shell_command_temp(Shell_Arguments);
 
 #endif

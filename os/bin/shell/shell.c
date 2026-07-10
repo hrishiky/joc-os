@@ -6,6 +6,11 @@
 #include "string.h"
 #include "commands.h"
 
+
+// move info and test commands under one command, use command line arguments to specify which (info heap, info pmm, etc.)
+// keep spaces during parsing when using "" or ''
+
+
 extern unsigned char vga_text_cursor_x;
 extern unsigned char vga_text_cursor_y;
 
@@ -20,7 +25,8 @@ Shell_Command commands[] = {
 	{ "heapinfo", &shell_command_heapinfo },
 	{ "vgatest", &shell_command_vgatest },
 	{ "meminfo", &shell_command_meminfo },
-	{ "ded", &shell_command_ded }
+	{ "ded", &shell_command_ded },
+	{ "temp", &shell_command_temp }
 };
 
 unsigned short shell_command_history_start = 0;

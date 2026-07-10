@@ -66,11 +66,6 @@ void idt_load_idtr(void) {
 }
 
 void idt_irq_setup(void) {
-	// fix this stuff
-
-        unsigned char a1 = inb(0x21);
-        unsigned char a2 = inb(0xA1);
-
 	outb(0x11, 0x20);
 	outb(0x11, 0xA0);
 
@@ -83,13 +78,10 @@ void idt_irq_setup(void) {
 	outb(0x01, 0x21);
 	outb(0x01, 0xA1);
 
-	outb(a1, 0x21);
-	outb(a2, 0xA1);
-
 	outb(0xFD, 0x21);
-	outb(0xBF, 0xA1);
+	outb(0xFF, 0xA1);
 
-	outb(0x00, 0x3F6);
+	// outb(0x00, 0x3F6);
 }
 
 void idt_init(void){

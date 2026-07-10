@@ -48,6 +48,16 @@ unsigned char strcmp(char* string_1, char* string_2) {
 	return 1;
 }
 
+unsigned char strcmp_partial(char* string_1, char* string_2, unsigned long length) {
+	for (unsigned long i = 0; i < length; i++) {
+		if (string_1[i] != string_2[i]) {
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
 long long strtol(char* string, unsigned char base) {
 	unsigned short i = 0;
 	long long number = 0;

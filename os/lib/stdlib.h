@@ -5,7 +5,7 @@
 
 #define NULL (void*) 0
 
-void* malloc(uint64_t size);
+void* malloc(size_t size);
 void free(void* ptr);
 
 char* itoa_ll(long long number, char* buffer, unsigned char base);

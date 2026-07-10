@@ -1,6 +1,8 @@
 #ifndef STDINT_H
 #define STDINT_H
 
+#define UINT64_MAX ((uint64_t)-1)
+
 typedef char int8_t;
 typedef unsigned char uint8_t;
 

@@ -6,6 +6,7 @@ void* memset(void* pointer, int value, unsigned long count);
 
 unsigned long strlen(char* string);
 unsigned char strcmp(char* string_1, char* string_2);
+unsigned char strcmp_partial(char* string_1, char* string_2, unsigned long length);
 long long strtol(char* string, unsigned char base);
 void strrev(char* string);
 

@@ -2,6 +2,7 @@
 #define ATA_H
 
 #include "stdint.h"
+#include "stdbool.h"
 
 #define ATA_REGISTER_DATA 0x1F0
 #define ATA_REGISTER_SECTORCOUNT 0x1F2
@@ -23,13 +24,21 @@
 #define ATA_DRIVE_MASTERLBA 0xE0
 #define ATA_LBA_MASK 0x0FFFFFFF
 
-#define ATA_SECTOR_WORD_COUNT 0x100
+#define ATA_SECTOR_WORD_COUNT 256
 
-void ata_check_error(void);
-void ata_wait_bsy(void);
-void ata_wait_drdy(void);
-void ata_wait_drq(void);
-void ata_read(uint64_t lba, void* buffer, uint8_t count);
-void ata_write(uint64_t lba, void* buffer, uint64_t count);
+typedef enum {
+	ATA_SUCCESS = 0,
+	ATA_ERROR = 1,
+	ATA_TIMEOUT = 2,
+	ATA_IRQ_DISABLED = 3
+} ata_return_t;
+
+
+bool ata_check_error(void);
+uint8_t ata_wait_bsy(void);
+uint8_t ata_wait_drdy(void);
+uint8_t ata_wait_drq(void);
+uint8_t ata_read(uint64_t lba, void* buffer, uint8_t count);
+uint8_t ata_write(uint64_t lba, void* buffer, uint64_t count);
 
 #endif

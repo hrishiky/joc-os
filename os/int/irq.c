@@ -12,11 +12,11 @@ extern bool ata_irq_flag;
 void int_irq_central_handler(Int_Regs* regs, uint32_t vector, uint32_t error) {
 	switch (vector) {
 		case INT_IRQ_VECTOR_ATA:
-			printf("ata interrupt\n");
-			uint8_t ata_status = inb(ATA_REGISTER_STATUS);
-			ata_irq_flag = true;
-			outb(0x20, 0xA0);
-			outb(0x20, 0x20);
+			printf("ATA INTERRUPT\n");
+			// uint8_t ata_status = inb(ATA_REGISTER_STATUS);
+			// ata_irq_flag = true;
+			// outb(0x20, 0xA0);
+			// outb(0x20, 0x20);
 			break;
 
 		case INT_IRQ_VECTOR_KEYBOARD:
@@ -26,7 +26,7 @@ void int_irq_central_handler(Int_Regs* regs, uint32_t vector, uint32_t error) {
 			break;
 
 		default:
-			printf("IRQ INTERRUPT: 0x%x\n", vector);
+			printf("\nIRQ INTERRUPT: 0x%x\n", vector);
 		        printf("ERROR: 0x%x\n", error);
 			outb(0x20, 0x20);
 			break;

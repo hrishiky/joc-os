@@ -3,7 +3,7 @@
 #include "exception.h"
 
 void int_exception_central_handler(Int_Regs* regs, unsigned long vector, unsigned long error) {
-	printf("CPU EXCEPTION: 0x%x\n", vector);
+	printf("\nCPU EXCEPTION: 0x%x\n", vector);
         printf("ERROR: 0x%x\n", error);
 	__asm__ volatile ("hlt");
 }

@@ -8,6 +8,24 @@
 
 heap_free_block_t* heap_free_list[HEAP_MAX_ORDER + 1];
 
+uint8_t heap_size_to_order(uint64_t size) {
+	uint8_t order = 0;
+	size += sizeof(heap_header_t);
+	uint64_t block_size = HEAP_BASE_BLOCK_SIZE;
+
+	while (block_size <= size &&
+	       order <= HEAP_MAX_ORDER) {
+		order++;
+		block_size <<= 1;
+	}
+
+	return order;
+}
+
+uint64_t heap_order_to_size(uint8_t order) {
+	return 1ULL << (order + HEAP_BASE_BLOCK_ORDER);
+}
+
 void heap_init(void) {
 	printf("heap init start\n");
 
@@ -33,24 +51,6 @@ void heap_init(void) {
 	}
 
 	printf("heap init done\n\n");
-}
-
-uint8_t heap_size_to_order(uint64_t size) {
-	uint8_t order = 0;
-	size += sizeof(heap_header_t);
-	uint64_t block_size = HEAP_BASE_BLOCK_SIZE;
-
-	while (block_size <= size &&
-	       order <= HEAP_MAX_ORDER) {
-		order++;
-		block_size <<= 1;
-	}
-
-	return order;
-}
-
-uint64_t heap_order_to_size(uint8_t order) {
-	return 1ULL << (order + HEAP_BASE_BLOCK_ORDER);
 }
 
 void heap_add_block(uint8_t order, void* block_start) {
@@ -107,7 +107,7 @@ void heap_split_block(uint8_t block_order, uint8_t target_order, void* block) {
 
 void* heap_alloc_block(uint8_t order) {
 	if (!heap_free_list[order]) {
-		return false;
+		return NULL;
 	}
 
 	void* block = (void*) heap_free_list[order];
@@ -116,7 +116,7 @@ void* heap_alloc_block(uint8_t order) {
 	page_table_t* cr3 = (page_table_t*) vmm_get_cr3();
 
 	for (uint64_t i = 0; i < heap_order_to_size(order) / PMM_BLOCK_SIZE; i++) {
-		vmm_map_page(pmm_alloc_block(), (void*) ((uint8_t*) block + i * PMM_BLOCK_SIZE), cr3);
+		vmm_map_page(pmm_alloc_block(), (void*) ((uint8_t*) block + (i * PMM_BLOCK_SIZE)), cr3);
 	}
 
 	heap_header_t* header = (heap_header_t*) block;
@@ -125,7 +125,7 @@ void* heap_alloc_block(uint8_t order) {
 	return (void*) ((uint8_t*) block + sizeof(heap_header_t));
 }
 
-void* heap_alloc(uint64_t size) {
+void* heap_alloc(size_t size) {
 	if (size == 0 || size > heap_order_to_size(HEAP_MAX_ORDER)) {
 		return NULL;
 	}
@@ -157,7 +157,7 @@ void heap_free(void* block) {
 		return;
 	}
 
-	uint8_t block_order = ((uint8_t*) (block - sizeof(heap_header_t)))[0];
+	uint8_t block_order = ((heap_header_t*) ((uint8_t*) block - sizeof(heap_header_t)))->order;
 
 	heap_add_block(block_order, (void*) ((uint8_t*) block - sizeof(heap_header_t)));
 

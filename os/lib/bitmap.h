@@ -4,8 +4,12 @@
 #include "stdint.h"
 #include "stdbool.h"
 
+
 #define BITMAP_DISK_SECTOR_UINT64_COUNT 64
 #define BITMAP_DISK_SECTOR_BIT_COUNT 512 * 8
+
+#define BITMAP_DISK_FAILURE UINT64_MAX
+
 
 typedef struct {
 	uint64_t* bitmap;
@@ -24,5 +28,17 @@ typedef struct {
 } bitmap_disk_t;
 
 
+uint64_t bitmap_disk_bit_to_block(bitmap_disk_t* bitmap, uint64_t bit);
+
+void bitmap_disk_init(bitmap_disk_t* bitmap, uint64_t start_sector, uint64_t block_sector_count, uint64_t size);
+void bitmap_disk_load(bitmap_disk_t* bitmap, uint64_t start_sector, uint64_t block_sector_count, uint64_t size);
+
+void bitmap_disk_load_block(bitmap_disk_t* bitmap, uint64_t block);
+
+void bitmap_disk_set(bitmap_disk_t* bitmap, uint64_t bit);
+void bitmap_disk_unset(bitmap_disk_t* bitmap, uint64_t bit);
+bool bitmap_disk_test(bitmap_disk_t* bitmap, uint64_t bit);
+
+uint64_t bitmap_disk_find_free_bit(bitmap_disk_t* bitmap);
 
 #endif

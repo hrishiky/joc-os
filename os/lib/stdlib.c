@@ -4,12 +4,12 @@
 #include "string.h"
 #include "heap.h"
 
-void* malloc(uint64_t size) {
+void* malloc(size_t size) {
 	return heap_alloc(size);
 }
 
 void free(void* ptr) {
-	free(ptr);
+	heap_free(ptr);
 }
 
 char* itoa_ll(long long number, char* buffer, unsigned char base) {
