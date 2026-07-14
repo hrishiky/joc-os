@@ -4,323 +4,377 @@
 #include "fs_inode.h"
 #include "fs_superblock.h"
 #include "fs_system.h"
+#include "stdio.h"
 #include "stdint.h"
 #include "stdbool.h"
 #include "stdlib.h"
 #include "string.h"
 
-#include "stdio.h"
-
-fs_directory_block_cache_t block_cache;
+// posix portable filename set - a-z 0-9 . _ -
+// fix error not printing with just ls
 
 extern fs_superblock_t superblock;
 
+size_t directory_entries_per_block;
+
 void fs_directory_init(void) {
+	directory_entries_per_block = superblock.bytes_per_block / sizeof(fs_directory_entry_t);
 	fs_directory_create_root();
-	printf("created root directory\n");
 }
 
-void fs_directory_load(void) {
-	fs_directory_cache_init();
-	printf("block cache loaded\n");
-}
-
-void fs_directory_cache_init(void) {
-	block_cache.block = malloc(superblock.bytes_per_block);
-}
-
-void fs_directory_cache_exit(void) {
-	free(block_cache.block);
-}
-
-void fs_directory_cache_load_block(uint64_t block_index) {
-	fs_data_read_block(block_index, block_cache.block);
-	block_cache.index = block_index;
+void fs_directory_load(bool initialized) {
+	if (!initialized) {
+		directory_entries_per_block = superblock.bytes_per_block / sizeof(fs_directory_entry_t);
+	}
 }
 
 void fs_directory_create_root(void) {
 	fs_inode_cache_entry_t* icache = fs_inode_create_forced(FS_INODE_TYPE_DIRECTORY, FS_ROOT_DIRECTORY_INODE);
 
-	fs_directory_entry_t current_directory;
-	fs_directory_entry_create(&current_directory, icache->index, FS_DIRECTORY_CURRENT_DIR_NAME);
-	fs_directory_entry_add(icache->index, &current_directory);
-
-	fs_directory_entry_t parent_directory;
-	fs_directory_entry_create(&parent_directory, icache->index, FS_DIRECTORY_PARENT_DIR_NAME);
-	fs_directory_entry_add(icache->index, &parent_directory);
+	fs_directory_entry_add(FS_ROOT_DIRECTORY_INODE, fs_directory_entry_create(FS_ROOT_DIRECTORY_INODE, FS_INODE_TYPE_DIRECTORY, FS_DIRECTORY_CURRENT_DIR_NAME));
+	fs_directory_entry_add(FS_ROOT_DIRECTORY_INODE, fs_directory_entry_create(FS_ROOT_DIRECTORY_INODE, FS_INODE_TYPE_DIRECTORY, FS_DIRECTORY_PARENT_DIR_NAME));
 }
 
-bool fs_directory_create(char* path, uint64_t pwd_inode) {
-	char name[strlen(path)];
-	char split_path[strlen(path)];
-
-	fs_path_split(path, name, split_path);
-
-	uint64_t parent_inode = fs_path_to_inode(split_path, pwd_inode);
+bool fs_directory_create(char* path, uint64_t cwd) {
+	uint64_t parent_inode = fs_path_to_parent_inode(path, cwd);
 
 	if (parent_inode == FS_INODE_FAILURE) {
 		return false;
 	}
 
-	fs_inode_cache_entry_t* icache = fs_inode_create(FS_INODE_TYPE_DIRECTORY);
+	char name[strlen(path) + 1];
+	fs_path_to_name(path, name);
 
-	fs_directory_entry_t current_directory;
-	fs_directory_entry_create(&current_directory, icache->index, FS_DIRECTORY_CURRENT_DIR_NAME);
-	fs_directory_entry_add(icache->index, &current_directory);
+	fs_directory_entry_t temp_entry = fs_directory_entry_find(parent_inode, name);
 
-	fs_directory_entry_t parent_directory;
-	fs_directory_entry_create(&parent_directory, parent_inode, FS_DIRECTORY_PARENT_DIR_NAME);
-	fs_directory_entry_add(icache->index, &current_directory);
-
-	fs_directory_entry_t directory_entry;
-	fs_directory_entry_create(&directory_entry, icache->index, name);
-	fs_directory_entry_add(parent_inode, &directory_entry);
-
-	return true;
-}
-
-void fs_directory_entry_create(fs_directory_entry_t* directory_entry, uint64_t inode_index, char* name) {
-	size_t name_length = strlen(name);
-
-	directory_entry->entry_size = sizeof(uint16_t) + sizeof(uint64_t) + sizeof(uint8_t) + name_length;
-	directory_entry->padding_size = 0;
-	directory_entry->inode_index = inode_index;
-	directory_entry->name_length = name_length;
-	memcpy((void*) name, (void*) directory_entry->name, name_length);
-}
-
-fs_directory_entry_wrapper_t fs_directory_entry_wrapper_create(uint64_t directory_inode_index) {
-	fs_directory_entry_wrapper_t entry_wrapper;
-	fs_inode_cache_entry_t* icache = fs_inode_get(directory_inode_index);
-
-	entry_wrapper.entry = NULL;
-	entry_wrapper.entry_index = 0;
-	entry_wrapper.block_index = fs_inode_get_block(icache, 1);
-	entry_wrapper.byte_offset = 0;
-	entry_wrapper.blocks_read = 0;
-	entry_wrapper.bytes_read = 0;
-}
-
-void fs_directory_entry_traverse(uint64_t directory_inode_index, fs_directory_entry_wrapper_t* state) {
-	fs_inode_cache_entry_t* icache = fs_inode_get(directory_inode_index);
-	fs_directory_entry_t* new_entry;
-	bool new_block = false;
-
-	if (state->entry->entry_size + state->bytes_read >= icache->inode.size) {
-		state->entry = NULL;
-		return;
-	}
-
-	if (state->entry->entry_size + state->byte_offset >= superblock.bytes_per_block) {
-		uint64_t next_block = fs_inode_get_block(icache, state->blocks_read + 1);
-		fs_directory_cache_load_block(next_block);
-
-		state->block_index = next_block;
-		state->blocks_read++;
-		state->byte_offset = 0;
-
-		new_block = true;
-	}
-
-	if (state->block_index != block_cache.index) {
-		uint64_t block = fs_inode_get_block(icache, state->blocks_read);
-		fs_directory_cache_load_block(block);
-	}
-
-	if (!new_block) {
-		state->byte_offset += state->entry->entry_size;
-	}
-
-	new_entry = (fs_directory_entry_t*) &block_cache.block[state->byte_offset];
-
-	memcpy((void*) state->entry, (void*) new_entry, new_entry->entry_size);
-	state->bytes_read += state->entry->entry_size;
-
-	state->entry_index++;
-}
-
-fs_directory_entry_wrapper_t fs_directory_entry_find_inode_index(uint64_t directory_inode_index, uint64_t entry_inode_index) {
-	fs_directory_entry_wrapper_t entry_wrapper = fs_directory_entry_wrapper_create(directory_inode_index);
-	fs_directory_entry_traverse(directory_inode_index, &entry_wrapper);
-
-	while (entry_wrapper.entry != NULL) {
-		if (entry_wrapper.entry->inode_index == entry_inode_index) {
-			return entry_wrapper;
-		}
-
-		fs_directory_entry_traverse(directory_inode_index, &entry_wrapper);
-	}
-
-	entry_wrapper.entry = NULL;
-
-	return entry_wrapper;
-}
-
-fs_directory_entry_wrapper_t fs_directory_entry_find_name(uint64_t directory_inode_index, char* name) {
-	fs_directory_entry_wrapper_t entry_wrapper = fs_directory_entry_wrapper_create(directory_inode_index);
-	fs_directory_entry_traverse(directory_inode_index, &entry_wrapper);
-
-	while (entry_wrapper.entry != NULL) {
-		if (strcmp(entry_wrapper.entry->name, name)) {
-			return entry_wrapper;
-		}
-
-		fs_directory_entry_traverse(directory_inode_index, &entry_wrapper);
-	}
-
-	entry_wrapper.entry = NULL;
-
-	return entry_wrapper;
-}
-
-void fs_directory_entry_add(uint64_t directory_inode_index, fs_directory_entry_t* directory_entry) { // hanging here
-	fs_inode_cache_entry_t* icache = fs_inode_get(directory_inode_index);
-	fs_directory_entry_wrapper_t entry_wrapper = fs_directory_entry_wrapper_create(directory_inode_index);
-	fs_directory_entry_traverse(directory_inode_index, &entry_wrapper);
-
-	while (entry_wrapper.entry != NULL) {
-		if (entry_wrapper.entry->padding_size >= directory_entry->entry_size) {
-			memcpy((void*) &block_cache.block[entry_wrapper.byte_offset + entry_wrapper.entry->entry_size], (void*) directory_entry, directory_entry->entry_size);
-			fs_data_write_block(entry_wrapper.block_index, (void*) block_cache.block);
-
-			return;
-		}
-
-		fs_directory_entry_traverse(directory_inode_index, &entry_wrapper);
-	}
-
-	if (entry_wrapper.byte_offset + directory_entry->entry_size > superblock.bytes_per_block) {
-		uint64_t padding = superblock.bytes_per_block - (entry_wrapper.byte_offset + entry_wrapper.entry->entry_size);
-		entry_wrapper.entry->padding_size += padding;
-		entry_wrapper.entry->entry_size += padding;
-		memcpy((void*) &block_cache.block[entry_wrapper.byte_offset], (void*) entry_wrapper.entry, entry_wrapper.entry->entry_size);
-		fs_data_write_block(entry_wrapper.block_index, (void*) block_cache.block);
-
-		fs_inode_set_size(icache, icache->inode.size + padding + directory_entry->entry_size);
-		uint64_t new_block = fs_inode_get_block(icache, entry_wrapper.blocks_read + 1);
-		fs_directory_cache_load_block(new_block);
-
-		memcpy((void*) &block_cache.block[0], (void*) directory_entry, directory_entry->entry_size);
-		fs_data_write_block(new_block, (void*) block_cache.block);
-	} else {
-		fs_inode_set_size(icache, icache->inode.size + directory_entry->entry_size);
-		memcpy((void*) &block_cache.block[entry_wrapper.byte_offset + entry_wrapper.entry->entry_size], (void*) directory_entry, directory_entry->entry_size);
-		fs_data_write_block(entry_wrapper.block_index, (void*) block_cache.block);
-	}
-}
-
-bool fs_directory_entry_remove(uint64_t directory_inode_index, uint64_t directory_entry_index) {
-	fs_inode_cache_entry_t* icache = fs_inode_get(directory_inode_index);
-	fs_directory_entry_wrapper_t entry_wrapper = fs_directory_entry_wrapper_create(directory_inode_index);
-	fs_directory_entry_wrapper_t last_entry_wrapper;
-
-	for (uint64_t i = 0; i < directory_entry_index - 1; i++) {
-		fs_directory_entry_traverse(directory_inode_index, &entry_wrapper);
-
-		if (entry_wrapper.entry == NULL) {
-			return false;
-		}
-	}
-
-	last_entry_wrapper = entry_wrapper;
-	fs_directory_entry_traverse(directory_inode_index, &entry_wrapper);
-
-	if (entry_wrapper.entry == NULL) {
+	if (temp_entry.type != FS_DIRECTORY_FAILURE) {
 		return false;
 	}
 
-	if (entry_wrapper.bytes_read + entry_wrapper.entry->entry_size >= icache->inode.size) {
-		if (entry_wrapper.byte_offset == 0) {
-			; // delete entry, free block, handle size
-		} else {
-			; // delete entry, handle size
-		}
-	} else {
-		if (last_entry_wrapper.block_index != entry_wrapper.block_index) {
-			; //move next entry to start of block and add padding
-		} else {
-			last_entry_wrapper.entry->padding_size += entry_wrapper.entry->entry_size;
-			memset((void*) &block_cache.block[entry_wrapper.byte_offset], 0, entry_wrapper.entry->entry_size);
-		}
-	}
+	fs_inode_cache_entry_t* icache = fs_inode_create(FS_INODE_TYPE_DIRECTORY);
+
+	fs_directory_entry_add(icache->index, fs_directory_entry_create(icache->index, FS_INODE_TYPE_DIRECTORY, FS_DIRECTORY_CURRENT_DIR_NAME));
+	fs_directory_entry_add(icache->index, fs_directory_entry_create(parent_inode, FS_INODE_TYPE_DIRECTORY, FS_DIRECTORY_PARENT_DIR_NAME));
+
+	fs_directory_entry_add(parent_inode, fs_directory_entry_create(icache->index, FS_INODE_TYPE_DIRECTORY, name));
 
 	return true;
 }
 
-void fs_path_split(char* path, char* name_buffer, char* path_buffer) {
-	size_t path_length = strlen(path);
-	size_t last_delimiter_offset;
+uint64_t fs_directory_find(char* path, uint64_t cwd) {
+	uint64_t parent_inode = fs_path_to_parent_inode(path, cwd);
 
-	for (size_t i = 0; i < path_length; i++) {
-		if (path[i] == FS_PATH_DELIMITER) {
-			last_delimiter_offset = i;
+	if (parent_inode == FS_INODE_FAILURE) {
+		return FS_INODE_FAILURE;
+	}
+
+	char name[strlen(path) + 1];
+	fs_path_to_name(path, name);
+
+	fs_directory_entry_t entry = fs_directory_entry_find(parent_inode, name);
+
+	return entry.inode;
+}
+
+fs_directory_entry_t fs_directory_entry_create(uint64_t inode, uint8_t type, char* name) {
+	fs_directory_entry_t directory_entry;
+	directory_entry.inode = inode;
+	directory_entry.type = type;
+	directory_entry.name_length = strlen(name);
+	memcpy((void*) directory_entry.name, (void*) name, directory_entry.name_length);
+
+	return directory_entry;
+}
+
+void fs_directory_entry_get(fs_directory_entry_t* entry, uint64_t directory_inode, uint64_t index) {
+	fs_inode_cache_entry_t* icache = fs_inode_get(directory_inode);
+
+	size_t entry_count = ((icache->inode.size / superblock.bytes_per_block) * directory_entries_per_block) + ((icache->inode.size % superblock.bytes_per_block) / sizeof(fs_directory_entry_t));
+
+	if (index >= entry_count) {
+		entry->type = FS_DIRECTORY_FAILURE;
+		return;
+	}
+
+	uint8_t block_buffer[superblock.bytes_per_block];
+	fs_directory_entry_t* block = (fs_directory_entry_t*) block_buffer;
+
+	uint64_t block_index = index / directory_entries_per_block;
+	uint64_t entry_index = index % directory_entries_per_block;
+	uint64_t data_block = fs_inode_get_block(icache, block_index);
+
+	fs_data_read_block(data_block, (void*) block);
+
+	*entry = block[entry_index];
+}
+
+fs_directory_entry_t fs_directory_entry_find(uint64_t directory_inode, char* name) {
+	fs_inode_cache_entry_t* icache = fs_inode_get(directory_inode);
+	fs_directory_entry_t entry;
+	char entry_name[FS_DIRECTORY_ENTRY_NAME_SIZE];
+
+	uint8_t block_buffer[superblock.bytes_per_block];
+	fs_directory_entry_t* block = (fs_directory_entry_t*) block_buffer;
+
+	size_t entry_count = ((icache->inode.size / superblock.bytes_per_block) * directory_entries_per_block) + ((icache->inode.size % superblock.bytes_per_block) / sizeof(fs_directory_entry_t));
+	uint64_t block_index;
+	uint64_t entry_index;
+	uint64_t data_block;
+
+	for (size_t i = 0; i < entry_count; i++) {
+		block_index = i / directory_entries_per_block;
+		entry_index = i % directory_entries_per_block;
+
+		if (entry_index == 0) {
+			data_block = fs_inode_get_block(icache, block_index);
+			fs_data_read_block(data_block, (void*) block_buffer);
+		}
+
+		entry = block[entry_index];
+		memcpy((void*) entry_name, (void*) entry.name, entry.name_length);
+		entry_name[entry.name_length] = '\0';
+
+		if (strcmp(name, entry_name) == 1) {
+			return entry;
 		}
 	}
 
-	for (size_t i = 0; i < last_delimiter_offset; i++) {
-		path_buffer[i] = path[i];
-	}
+	entry.type = FS_DIRECTORY_FAILURE;
 
-	path_buffer[last_delimiter_offset] = '\0';
-
-	for (size_t i = last_delimiter_offset + 1; i < path_length; i++) {
-		name_buffer[i] = path[i];
-	}
-
-	name_buffer[path_length - last_delimiter_offset] = '\0';
+	return entry;
 }
 
-uint64_t fs_path_to_inode(char* path, uint64_t pwd_inode) {
-	fs_directory_entry_wrapper_t temp_entry_wrapper;
+void fs_directory_entry_add(uint64_t directory_inode, fs_directory_entry_t directory_entry) {
+	fs_inode_cache_entry_t* icache = fs_inode_get(directory_inode);
 
-	size_t path_index;
-	char* path_segment = malloc(strlen(path));
-	size_t path_segment_index;
+	uint8_t block_buffer[superblock.bytes_per_block];
+	fs_directory_entry_t* block = (fs_directory_entry_t*) block_buffer;
 
-	uint64_t current_inode;
+	size_t entry_count = ((icache->inode.size / superblock.bytes_per_block) * directory_entries_per_block) + ((icache->inode.size % superblock.bytes_per_block) / sizeof(fs_directory_entry_t));
+	uint64_t block_index;
+	uint64_t entry_index;
+	uint64_t data_block;
 
-	switch (path[0]) {
-		case '.':
-			if (path[1] == '.') {
-				current_inode = (fs_directory_entry_find_name(pwd_inode, "..")).entry->inode_index;
-				path_index = 3;
-			} else {
-				current_inode = pwd_inode;
-				path_index = 2;
-			}
-		case '/':
-			current_inode = FS_ROOT_DIRECTORY_INODE;
-			path_index = 1;
-		default:
-			current_inode = pwd_inode;
-			path_index = 0;
+	if (entry_count == 0) {
+		fs_inode_set_size(icache, icache->inode.size + sizeof(fs_directory_entry_t));
+
+		data_block = fs_inode_get_block(icache, 0);
+
+		fs_data_read_block(data_block, (void*) block);
+		block[0] = directory_entry;
+		fs_data_write_block(data_block, (void*) block);
+
+		return;
 	}
 
-	while (path[path_index] != '\0') {
-		path_segment_index = 0;
+	for (size_t i = 0; i < entry_count; i++) {
+		block_index = i / directory_entries_per_block;
+		entry_index = i % directory_entries_per_block;
+		data_block = fs_inode_get_block(icache, block_index);
 
-		while (path[path_index] != FS_PATH_DELIMITER) {
+		fs_data_read_block(data_block, (void*) block);
+
+		if (entry_index == 0) {
+			fs_data_read_block(data_block, (void*) block);
+		}
+
+		if (block[entry_index].type == FS_DIRECTORY_ENTRY_FREE) {
+			block[entry_index] = directory_entry;
+			fs_data_write_block(data_block, (void*) block);
+			return;
+		}
+	}
+
+	fs_inode_set_size(icache, icache->inode.size + sizeof(fs_directory_entry_t));
+
+	block_index = entry_count / directory_entries_per_block;
+	entry_index = entry_count % directory_entries_per_block;
+	data_block = fs_inode_get_block(icache, block_index);
+
+	if (entry_index == 0) {
+		fs_inode_set_size(icache, icache->inode.size + (superblock.bytes_per_block - (directory_entries_per_block * sizeof(fs_directory_entry_t))));
+		fs_data_read_block(data_block, (void*) block);
+	}
+
+	fs_data_read_block(data_block, (void*) block);
+	block[entry_index] = directory_entry;
+	fs_data_write_block(data_block, (void*) block);
+}
+
+bool fs_directory_entry_del(uint64_t directory_inode, char* name) {
+	fs_inode_cache_entry_t* icache = fs_inode_get(directory_inode);
+
+	uint8_t block_buffer[superblock.bytes_per_block];
+	fs_directory_entry_t* block = (fs_directory_entry_t*) block_buffer;
+
+	size_t entry_count = ((icache->inode.size / superblock.bytes_per_block) * directory_entries_per_block) + ((icache->inode.size % superblock.bytes_per_block) / sizeof(fs_directory_entry_t));
+	uint64_t block_index;
+	uint64_t entry_index;
+	uint64_t data_block;
+
+	for (size_t i = 0; i < entry_count; i++) {
+		block_index = i / directory_entries_per_block;
+		entry_index = i % directory_entries_per_block;
+		data_block = fs_inode_get_block(icache, block_index);
+
+		if (entry_index == 0) {
+			fs_data_read_block(data_block, (void*) block);
+		}
+
+		if (strcmp_partial(name, block[entry_index].name, block[entry_index].name_length)) {
+			block[entry_index].type = FS_DIRECTORY_ENTRY_FREE;
+			fs_data_write_block(data_block, (void*) block);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void fs_directory_entry_print(fs_directory_entry_t* entry) {
+	printf("inode: %i | type: ", entry->inode);
+
+	if (entry->type == FS_INODE_TYPE_DIRECTORY) {
+		printf("directory | ", entry->type);
+	} else if (entry->type == FS_INODE_TYPE_FILE) {
+		printf("file | ", entry->type);
+	} else if (entry->type == FS_DIRECTORY_ENTRY_FREE) {
+		printf("empty | ", entry->type);
+	} else if (entry->type == FS_DIRECTORY_FAILURE) {
+		printf("DIRECTORY FAILURE | ", entry->type);
+	} else {
+		printf("unknown (%i) | ", entry->type);
+	}
+
+	printf("name length: %i | name: ", entry->name_length);
+
+	for (uint64_t i = 0; i < entry->name_length; i++) {
+		printf("%c", entry->name[i]);
+	}
+
+	printf("\n");
+}
+
+size_t fs_path_find_last_delimiter(char* path) {
+	size_t path_length = strlen(path);
+	size_t path_index = path_length - 1;
+
+	if (path[path_index] == FS_PATH_DELIMITER) {
+		path_index--;
+		path_length--;
+	}
+
+	for (size_t i = 0; i < path_length; i++) {
+		if (path[path_index] == FS_PATH_DELIMITER) {
+			return path_index;
+		}
+
+		path_index--;
+	}
+
+	return FS_DIRECTORY_FAILURE;
+}
+
+void fs_path_to_name(char* path, char* buffer) {
+	size_t name_start = fs_path_find_last_delimiter(path);
+
+	if (name_start == FS_DIRECTORY_FAILURE) {
+		size_t path_length = strlen(path);
+		memcpy((void*) buffer, (void*) path, path_length);
+		buffer[path_length] = '\0';
+		return;
+	}
+
+	name_start++;
+	size_t path_length = strlen(path);
+	size_t name_length = path_length - name_start;
+
+	if (path[path_length - 1] == FS_PATH_DELIMITER) {
+		name_length--;
+	}
+
+	memcpy((void*) buffer, (void*) &path[name_start], name_length);
+	buffer[name_length] = '\0';
+}
+
+void fs_path_to_parent_path(char* path, char* buffer) {
+	size_t path_end = fs_path_find_last_delimiter(path);
+
+	if (path_end == FS_DIRECTORY_FAILURE) {
+		buffer[0] = '\0';
+		return;
+	}
+
+	memcpy((void*) buffer, (void*) path, path_end);
+	buffer[path_end] = '\0';
+}
+
+uint64_t fs_path_to_inode(char* path, uint64_t cwd) {
+	if (strlen(path) == 0) {
+		return cwd;
+	}
+
+	uint64_t current_inode = cwd;
+	fs_directory_entry_t temp_entry;
+
+	size_t path_index = 0;
+
+	char path_segment[strlen(path) + 1];
+	size_t path_segment_index = 0;
+
+	if (path[0] == '/') {
+		current_inode = FS_ROOT_DIRECTORY_INODE;
+		path_index++;
+	}
+
+	while (1) {
+		if (path[path_index] == FS_PATH_DELIMITER || path[path_index] == '\0') {
+			path_segment[path_segment_index] = '\0';
+
+			if (path_segment_index == 0) {
+				if (path[path_index - 1] == '/') {
+					return current_inode;
+				}
+
+				path_segment_index = 0;
+				path_index++;
+				continue;
+			}
+
+			temp_entry = fs_directory_entry_find(current_inode, path_segment);
+
+			if (temp_entry.type == FS_DIRECTORY_FAILURE) {
+				return FS_INODE_FAILURE;
+			}
+
+			current_inode = temp_entry.inode;
+
 			if (path[path_index] == '\0') {
 				break;
 			}
 
-			path_segment[path_segment_index] = path[path_index];
-			path_segment_index++;
+			path_segment_index = 0;
 			path_index++;
+			continue;
 		}
 
-		path_segment[path_segment_index + 1] = '\0';
-
-		temp_entry_wrapper = fs_directory_entry_find_name(current_inode, path_segment);
-
-		if (temp_entry_wrapper.entry == NULL) {
-			return FS_INODE_FAILURE;
-		}
-
-		current_inode = temp_entry_wrapper.entry->inode_index;
+		path_segment[path_segment_index] = path[path_index];
+		path_segment_index++;
+		path_index++;
 	}
 
-	free(path_segment);
-
 	return current_inode;
+}
+
+uint64_t fs_path_to_parent_inode(char* path, uint64_t cwd) {
+	char parent_path[strlen(path) + 1];
+	fs_path_to_parent_path(path, parent_path);
+
+	uint64_t inode = fs_path_to_inode(parent_path, cwd);
+
+	if (inode == FS_DIRECTORY_FAILURE) {
+		return FS_INODE_FAILURE;
+	}
+
+	return inode;
 }

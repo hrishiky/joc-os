@@ -45,7 +45,7 @@ typedef struct {
 
 
 void fs_inode_init(void);
-void fs_inode_load(void);
+void fs_inode_load(bool initialized);
 
 void fs_inode_cache_entry_flush(uint64_t index);
 int64_t fs_inode_cache_entry_evict(void);
@@ -55,11 +55,10 @@ fs_inode_cache_entry_t* fs_inode_cache_search(uint64_t index);
 
 fs_inode_cache_entry_t* fs_inode_create_forced(uint8_t type, uint64_t index);
 fs_inode_cache_entry_t* fs_inode_create(uint8_t type);
-
 fs_inode_t fs_inode_table_get(uint64_t inode_table_block, uint64_t table_index);
 fs_inode_cache_entry_t* fs_inode_get(uint64_t index);
 
-void fs_inode_set_size(fs_inode_cache_entry_t* icache, size_t size);
+bool fs_inode_set_size(fs_inode_cache_entry_t* icache, size_t size);
 uint64_t fs_inode_get_block(fs_inode_cache_entry_t* icache, uint64_t table_index);
 void fs_inode_set_block(fs_inode_cache_entry_t* icache, uint64_t table_index, uint64_t data_index);
 

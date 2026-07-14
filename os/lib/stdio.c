@@ -1,4 +1,6 @@
 #include "stdio.h"
+
+#include "stdlib.h"
 #include "string.h"
 #include "vga_text.h"
 
@@ -22,7 +24,7 @@ void printf(char* fstring, ...) {
 			case 'd':
 			case 'i':
 				long long signed_integer = va_arg(args, long long);
-				vga_text_print_integer( signed_integer);
+				vga_text_print_integer(signed_integer);
 				break;
 
 			case 'u':

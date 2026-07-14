@@ -15,5 +15,7 @@ extern void shell_command_help(Shell_Arguments);
 extern void shell_command_meminfo(Shell_Arguments);
 extern void shell_command_ded(Shell_Arguments);
 extern void shell_command_temp(Shell_Arguments);
+extern void shell_command_ls(Shell_Arguments);
+extern void shell_command_mkdir(Shell_Arguments);
 
 #endif

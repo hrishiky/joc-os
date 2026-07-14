@@ -1,10 +1,9 @@
 #include "fs_data.h"
 
-#include "stdio.h"
-
 #include "fs_superblock.h"
 #include "fs_helper.h"
 #include "fs_system.h"
+#include "stdio.h"
 #include "stdint.h"
 #include "ata.h"
 #include "bitmap.h"
@@ -20,11 +19,22 @@ void fs_data_init(void) {
 		superblock.block_sector_count,
 		superblock.data_blocks_block_count
 	);
-}
 
-void fs_data_load(void) {
 	bitmap_disk_load(
 		&data_bitmap,
+		true,
+		fs_block_to_sector(&superblock, superblock.data_bitmap_start),
+		superblock.block_sector_count,
+		superblock.data_blocks_block_count
+	);
+}
+
+void fs_data_load(bool initialized) {
+	bitmap_disk_flush(&data_bitmap);
+
+	bitmap_disk_load(
+		&data_bitmap,
+		initialized,
 		fs_block_to_sector(&superblock, superblock.data_bitmap_start),
 		superblock.block_sector_count,
 		superblock.data_blocks_block_count

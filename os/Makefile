@@ -3,7 +3,7 @@ BUILD_DIR := ../build/os
 OS_SRC_DIRS := $(shell find . -type d)
 OS := $(BUILD_DIR)/os.elf
 
-CFLAGS += -ffreestanding -nostdlib -gdwarf-4 -m64 -ggdb3
+CFLAGS += -ffreestanding -nostdlib -gdwarf-4 -m64 -ggdb3 -g
 CFLAGS += $(patsubst %, -I%, $(OS_SRC_DIRS))
 
 OS_C_SRCS := $(foreach dir, $(shell find . -type d), $(wildcard $(dir)/*.c))

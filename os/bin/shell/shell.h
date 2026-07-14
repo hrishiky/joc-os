@@ -5,7 +5,8 @@
 #include "vga_text.h"
 #include "string.h"
 
-#define SHELL_COMMANDS_COUNT 12
+#define SHELL_COMMANDS_COUNT 14
+
 #define SHELL_COMMAND_LENGTH_MAXIMUM 1024
 #define SHELL_COMMAND_DELIMITER ' '
 #define SHELL_ARGC_MAXIMUM 64

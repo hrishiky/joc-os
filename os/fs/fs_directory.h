@@ -5,55 +5,43 @@
 #include "stdbool.h"
 
 
+#define FS_DIRECTORY_ENTRY_NAME_SIZE 54
+
+#define FS_DIRECTORY_FAILURE UINT8_MAX
+#define FS_DIRECTORY_ENTRY_FREE (UINT8_MAX - 1)
+
 #define FS_DIRECTORY_CURRENT_DIR_NAME "."
 #define FS_DIRECTORY_PARENT_DIR_NAME ".."
 
 
 typedef struct {
-	uint16_t entry_size;
-	uint16_t padding_size;
-	uint64_t inode_index;
+	uint64_t inode;
+	uint8_t type;
 	uint8_t name_length;
-	char name[];
-} fs_directory_entry_t;
-
-typedef struct {
-	fs_directory_entry_t* entry;
-	uint64_t entry_index;
-	uint64_t block_index;
-	uint64_t byte_offset;
-	uint64_t blocks_read;
-	uint64_t bytes_read;
-} fs_directory_entry_wrapper_t;
-
-typedef struct {
-	uint8_t* block;
-	uint64_t index;
-} fs_directory_block_cache_t;
+	char name[FS_DIRECTORY_ENTRY_NAME_SIZE];
+} __attribute__((packed)) fs_directory_entry_t;
 
 
 void fs_directory_init(void);
-void fs_directory_load(void);
-
-void fs_directory_cache_init(void);
-void fs_directory_cache_exit(void);
-void fs_directory_cache_load_block(uint64_t block_index);
+void fs_directory_init(void);
+void fs_directory_load(bool initialized);
 
 void fs_directory_create_root(void);
-bool fs_directory_create(char* path, uint64_t pwd_inode);
+bool fs_directory_create(char* path, uint64_t cwd);
+uint64_t fs_directory_find(char* path, uint64_t cwd);
 
-void fs_directory_entry_create(fs_directory_entry_t* directory_entry, uint64_t inode_index, char* name);
-fs_directory_entry_wrapper_t fs_directory_entry_wrapper_create(uint64_t directory_inode_index);
+fs_directory_entry_t fs_directory_entry_create(uint64_t inode, uint8_t type, char* name);
+fs_directory_entry_t fs_directory_entry_find(uint64_t directory_inode, char* name);
+void fs_directory_entry_get(fs_directory_entry_t* entry, uint64_t directory_inode, uint64_t index);
+void fs_directory_entry_add(uint64_t directory_inode, fs_directory_entry_t directory_entry);
+bool fs_directory_entry_del(uint64_t directory_inode, char* name);
+void fs_directory_entry_print(fs_directory_entry_t* entry);
 
-void fs_directory_entry_traverse(uint64_t directory_inode_index, fs_directory_entry_wrapper_t* state);
+size_t fs_path_find_last_delimiter(char* path);
+void fs_path_to_name(char* path, char* buffer);
+void fs_path_to_parent_path(char* path, char* buffer);
 
-fs_directory_entry_wrapper_t fs_directory_entry_find_inode_index(uint64_t directory_inode_index, uint64_t entry_inode_index);
-fs_directory_entry_wrapper_t fs_directory_entry_find_name(uint64_t directory_inode_index, char* name);
-
-void fs_directory_entry_add(uint64_t directory_inode_index, fs_directory_entry_t* directory_entry);
-bool fs_directory_entry_remove(uint64_t directory_inode_index, uint64_t directory_entry_index);
-
-void fs_path_split(char* path, char* name_buffer, char* path_buffer);
-uint64_t fs_path_to_inode(char* path, uint64_t pwd);
+uint64_t fs_path_to_inode(char* path, uint64_t cwd);
+uint64_t fs_path_to_parent_inode(char* path, uint64_t cwd);
 
 #endif

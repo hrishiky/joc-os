@@ -23,7 +23,7 @@ typedef struct {
 } fs_data_directory_entry_t;
 
 void fs_data_init(void);
-void fs_data_load(void);
+void fs_data_load(bool initialized);
 
 uint64_t fs_data_alloc_block(void);
 void fs_data_free_block(uint64_t index);

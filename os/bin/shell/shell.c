@@ -1,11 +1,12 @@
 #include "shell.h"
-#include "keyboard.h"
-#include "vga_text.h"
+
+#include "commands.h"
 #include "stdio.h"
 #include "stdint.h"
+#include "keyboard.h"
+#include "vga_text.h"
 #include "string.h"
-#include "commands.h"
-
+#include "fs.h"
 
 // move info and test commands under one command, use command line arguments to specify which (info heap, info pmm, etc.)
 // keep spaces during parsing when using "" or ''
@@ -26,17 +27,21 @@ Shell_Command commands[] = {
 	{ "vgatest", &shell_command_vgatest },
 	{ "meminfo", &shell_command_meminfo },
 	{ "ded", &shell_command_ded },
-	{ "temp", &shell_command_temp }
+	{ "temp", &shell_command_temp },
+	{ "ls", &shell_command_ls },
+	{ "mkdir", &shell_command_mkdir }
 };
 
-unsigned short shell_command_history_start = 0;
+uint16_t shell_command_history_start;
 Shell_Arguments shell_command_history[SHELL_COMMAND_HISTORY_COUNT];
 
-unsigned char shell_foreground_color = VGA_TEXT_COLOR_WHITE;
-unsigned char shell_background_color = VGA_TEXT_COLOR_BLACK;
+uint8_t shell_foreground_color;
+uint8_t shell_background_color;
 
-unsigned char shell_input_start_x;
-unsigned char shell_input_start_y;
+uint8_t shell_input_start_x;
+uint8_t shell_input_start_y;
+
+uint64_t cwd;
 
 void shell_print_prompt(void) {
 	printf("$ ");
@@ -176,8 +181,15 @@ void shell_run_command(Shell_Arguments arguments) {
 }
 
 void shell_main(void) {
+	shell_command_history_start = 0;
+
+	shell_background_color = VGA_TEXT_COLOR_BLACK;
+	shell_foreground_color = VGA_TEXT_COLOR_WHITE;
+
 	vga_text_clear_screen();
 	vga_text_blinking_cursor_enable(0, 15);
+
+	cwd = FS_ROOT_DIRECTORY_INODE;
 
 	while (1) {
 		shell_print_prompt();

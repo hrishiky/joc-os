@@ -1,5 +1,7 @@
 #include "string.h"
 
+#include "stdio.h"
+
 void* memcpy(void* destination, const void* source, unsigned long count) {
 	unsigned char* destination_bytes = (unsigned char*) destination;
 	const unsigned char* source_bytes = (const unsigned char*) source;
