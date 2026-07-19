@@ -55,6 +55,8 @@ fs_inode_cache_entry_t* fs_inode_cache_search(uint64_t index);
 
 fs_inode_cache_entry_t* fs_inode_create_forced(uint8_t type, uint64_t index);
 fs_inode_cache_entry_t* fs_inode_create(uint8_t type);
+void fs_inode_destroy(fs_inode_cache_entry_t* icache);
+
 fs_inode_t fs_inode_table_get(uint64_t inode_table_block, uint64_t table_index);
 fs_inode_cache_entry_t* fs_inode_get(uint64_t index);
 

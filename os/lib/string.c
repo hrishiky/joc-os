@@ -24,6 +24,10 @@ void* memset(void *pointer, int value, unsigned long count) {
 	return pointer;
 }
 
+void strcpy(char* destination, char* source) {
+	memcpy((void*) destination, (void*) source, strlen(source) + 1);
+}
+
 unsigned long strlen(char* string) {
 	unsigned long length = 0;
 

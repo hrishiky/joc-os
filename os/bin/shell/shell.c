@@ -1,6 +1,7 @@
 #include "shell.h"
 
 #include "commands.h"
+#include "stdlib.h"
 #include "stdio.h"
 #include "stdint.h"
 #include "keyboard.h"
@@ -10,14 +11,14 @@
 
 // move info and test commands under one command, use command line arguments to specify which (info heap, info pmm, etc.)
 // keep spaces during parsing when using "" or ''
-
+// fix hardcoded cwd path size
 
 extern unsigned char vga_text_cursor_x;
 extern unsigned char vga_text_cursor_y;
 
 Shell_Command commands[] = {
 	{ "help", &shell_command_help },
-	{ "echo", &shell_command_echo },
+	{ "print", &shell_command_print },
 	{ "clear", &shell_command_clear },
 	{ "reboot", &shell_command_reboot },
 	{ "color", &shell_command_color },
@@ -29,7 +30,13 @@ Shell_Command commands[] = {
 	{ "ded", &shell_command_ded },
 	{ "temp", &shell_command_temp },
 	{ "ls", &shell_command_ls },
-	{ "mkdir", &shell_command_mkdir }
+	{ "mkdir", &shell_command_mkdir },
+	{ "cd", &shell_command_cd },
+	{ "rmdir", &shell_command_rmdir },
+	{ "pwd", &shell_command_pwd },
+	{ "touch", &shell_command_touch },
+	{ "rm", &shell_command_rm },
+	{ "out", &shell_command_out },
 };
 
 uint16_t shell_command_history_start;
@@ -41,10 +48,11 @@ uint8_t shell_background_color;
 uint8_t shell_input_start_x;
 uint8_t shell_input_start_y;
 
-uint64_t cwd;
+size_t cwd;
+char* cwd_path;
 
 void shell_print_prompt(void) {
-	printf("$ ");
+	printf("%s $ ", cwd_path);
 
 	shell_input_start_x = vga_text_cursor_x;
 	shell_input_start_y = vga_text_cursor_y;
@@ -190,6 +198,8 @@ void shell_main(void) {
 	vga_text_blinking_cursor_enable(0, 15);
 
 	cwd = FS_ROOT_DIRECTORY_INODE;
+	cwd_path = malloc(1000);
+	cwd_path = "/";
 
 	while (1) {
 		shell_print_prompt();
@@ -198,4 +208,6 @@ void shell_main(void) {
 		shell_run_command(arguments);
 		shell_print_spacing();
 	}
+
+	free(cwd_path);
 }

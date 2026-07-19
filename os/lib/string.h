@@ -4,6 +4,7 @@
 void* memcpy(void* destination, const void* source, unsigned long count);
 void* memset(void* pointer, int value, unsigned long count);
 
+void strcpy(char* destination, char* source);
 unsigned long strlen(char* string);
 unsigned char strcmp(char* string_1, char* string_2);
 unsigned char strcmp_partial(char* string_1, char* string_2, unsigned long length);

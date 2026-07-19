@@ -13,6 +13,8 @@
 #include "bitmap.h"
 #include "math.h"
 
+// convert all to inode input instead of icache
+
 extern fs_superblock_t superblock;
 
 bitmap_disk_t inode_bitmap;
@@ -104,7 +106,7 @@ int64_t fs_inode_cache_entry_evict(void) {
 
 uint64_t fs_inode_cache_evict(void) {
 	for (uint64_t i = 0; i < FS_INODE_CACHE_SIZE; i++) {
-		uint64_t index = fs_inode_cache_entry_evict();
+		int64_t index = fs_inode_cache_entry_evict();
 
 		if (index != -1) {
 			return index;
@@ -193,7 +195,20 @@ fs_inode_cache_entry_t* fs_inode_create(uint8_t type) {
 }
 
 void fs_inode_destroy(fs_inode_cache_entry_t* icache) {
-	; // clear inode on disk and bitmap, free blocks
+	fs_inode_free_blocks(icache, icache->inode.block_count);
+	bitmap_disk_unset(&inode_bitmap, icache->index);
+
+	icache->inode.type = 0;
+	icache->inode.size = 0;
+	icache->inode.block_count = 0;
+
+	icache->reference = 0;
+	icache->dirty = true;
+
+	size_t cache_index = icache - inode_cache;
+	fs_inode_cache_entry_flush(cache_index);
+
+	icache->valid = false;
 }
 
 fs_inode_t fs_inode_table_get(uint64_t inode_table_block, uint64_t table_index) {
@@ -269,7 +284,7 @@ uint64_t fs_inode_get_block(fs_inode_cache_entry_t* icache, uint64_t index) {
 
 	} else if (index < FS_INODE_SECOND_INDIRECT_TABLE_CUTOFF) {
 		uint64_t second_indirect_index = (index - FS_INODE_TABLE_POINTER_COUNT) / FS_INODE_INDIRECT_TABLE_POINTER_COUNT;
-		uint64_t first_indirect_index = index - FS_INODE_TABLE_POINTER_COUNT - (first_indirect_index * FS_INODE_INDIRECT_TABLE_POINTER_COUNT);
+		uint64_t first_indirect_index = index - FS_INODE_TABLE_POINTER_COUNT - (second_indirect_index * FS_INODE_INDIRECT_TABLE_POINTER_COUNT);
 		fs_data_read_block(icache->inode.second_indirect_table, (void*) buffer);
 
 		uint64_t first_indirect_table = buffer->blocks[second_indirect_index];
@@ -279,8 +294,8 @@ uint64_t fs_inode_get_block(fs_inode_cache_entry_t* icache, uint64_t index) {
 
 	} else {
 		uint64_t third_indirect_index = (index - FS_INODE_TABLE_POINTER_COUNT) / pow(FS_INODE_INDIRECT_TABLE_POINTER_COUNT, 2);
-		uint64_t second_indirect_index = (index - FS_INODE_TABLE_POINTER_COUNT - (second_indirect_index * pow(FS_INODE_INDIRECT_TABLE_POINTER_COUNT, 2))) / FS_INODE_INDIRECT_TABLE_POINTER_COUNT;
-		uint64_t first_indirect_index = index - FS_INODE_TABLE_POINTER_COUNT - (first_indirect_index * FS_INODE_INDIRECT_TABLE_POINTER_COUNT) - (second_indirect_index * pow(FS_INODE_INDIRECT_TABLE_POINTER_COUNT, 2));
+		uint64_t second_indirect_index = (index - FS_INODE_TABLE_POINTER_COUNT - (third_indirect_index * pow(FS_INODE_INDIRECT_TABLE_POINTER_COUNT, 2))) / FS_INODE_INDIRECT_TABLE_POINTER_COUNT;
+		uint64_t first_indirect_index = index - FS_INODE_TABLE_POINTER_COUNT - (second_indirect_index * FS_INODE_INDIRECT_TABLE_POINTER_COUNT) - (third_indirect_index * pow(FS_INODE_INDIRECT_TABLE_POINTER_COUNT, 2));
 		fs_data_read_block(icache->inode.third_indirect_table, (void*) buffer);
 		fs_data_read_block(buffer->blocks[third_indirect_index], (void*) buffer);
 
@@ -319,8 +334,8 @@ void fs_inode_set_block(fs_inode_cache_entry_t* icache, uint64_t table_index, ui
 		fs_data_write_block(icache->inode.first_indirect_table, (void*) buffer);
 
 	} else if (table_index < FS_INODE_SECOND_INDIRECT_TABLE_CUTOFF) {
-		uint64_t second_indirect_index = (data_index - FS_INODE_TABLE_POINTER_COUNT) / FS_INODE_INDIRECT_TABLE_POINTER_COUNT;
-		uint64_t first_indirect_index = data_index - FS_INODE_TABLE_POINTER_COUNT - (first_indirect_index * FS_INODE_INDIRECT_TABLE_POINTER_COUNT);
+		uint64_t second_indirect_index = (table_index - FS_INODE_TABLE_POINTER_COUNT) / FS_INODE_INDIRECT_TABLE_POINTER_COUNT;
+		uint64_t first_indirect_index = table_index - FS_INODE_TABLE_POINTER_COUNT - (first_indirect_index * FS_INODE_INDIRECT_TABLE_POINTER_COUNT);
 
 		fs_data_read_block(icache->inode.second_indirect_table, (void*) buffer);
 
@@ -331,9 +346,9 @@ void fs_inode_set_block(fs_inode_cache_entry_t* icache, uint64_t table_index, ui
 		fs_data_write_block(first_indirect_table, (void*) buffer);
 
 	} else {
-		uint64_t third_indirect_index = (data_index - FS_INODE_TABLE_POINTER_COUNT) / pow(FS_INODE_INDIRECT_TABLE_POINTER_COUNT, 2);
-		uint64_t second_indirect_index = (data_index - FS_INODE_TABLE_POINTER_COUNT - (second_indirect_index * pow(FS_INODE_INDIRECT_TABLE_POINTER_COUNT, 2))) / FS_INODE_INDIRECT_TABLE_POINTER_COUNT;
-		uint64_t first_indirect_index = data_index - FS_INODE_TABLE_POINTER_COUNT - (first_indirect_index * FS_INODE_INDIRECT_TABLE_POINTER_COUNT) - (second_indirect_index * pow(FS_INODE_INDIRECT_TABLE_POINTER_COUNT, 2));
+		uint64_t third_indirect_index = (table_index - FS_INODE_TABLE_POINTER_COUNT) / pow(FS_INODE_INDIRECT_TABLE_POINTER_COUNT, 2);
+		uint64_t second_indirect_index = (table_index - FS_INODE_TABLE_POINTER_COUNT - (second_indirect_index * pow(FS_INODE_INDIRECT_TABLE_POINTER_COUNT, 2))) / FS_INODE_INDIRECT_TABLE_POINTER_COUNT;
+		uint64_t first_indirect_index = table_index - FS_INODE_TABLE_POINTER_COUNT - (first_indirect_index * FS_INODE_INDIRECT_TABLE_POINTER_COUNT) - (second_indirect_index * pow(FS_INODE_INDIRECT_TABLE_POINTER_COUNT, 2));
 
 		fs_data_read_block(icache->inode.third_indirect_table, (void*) buffer);
 		fs_data_read_block(buffer->blocks[third_indirect_index], (void*) buffer);
@@ -362,6 +377,7 @@ bool fs_inode_alloc_blocks(fs_inode_cache_entry_t* icache, size_t count) {
 		new_block = fs_data_alloc_block();
 
 		if (new_block == FS_DATA_FAILURE) {
+			fs_data_free_block(new_block);
 			return false;
 		}
 
@@ -382,11 +398,6 @@ bool fs_inode_free_blocks(fs_inode_cache_entry_t* icache, size_t count) {
 	}
 
 	if (icache->inode.block_count < count) {
-		icache->inode.block_count = 0;
-
-		icache->reference = 1;
-		icache->dirty = true;
-
 		return false;
 	}
 

@@ -11,7 +11,8 @@
 #include "string.h"
 
 // posix portable filename set - a-z 0-9 . _ -
-// fix error not printing with just ls
+// switch create and find functions to dirtory inode and name
+// make path functions take in absolute path only char* path
 
 extern fs_superblock_t superblock;
 
@@ -35,7 +36,7 @@ void fs_directory_create_root(void) {
 	fs_directory_entry_add(FS_ROOT_DIRECTORY_INODE, fs_directory_entry_create(FS_ROOT_DIRECTORY_INODE, FS_INODE_TYPE_DIRECTORY, FS_DIRECTORY_PARENT_DIR_NAME));
 }
 
-bool fs_directory_create(char* path, uint64_t cwd) {
+uint8_t fs_directory_create(char* path, uint64_t cwd) {
 	uint64_t parent_inode = fs_path_to_parent_inode(path, cwd);
 
 	if (parent_inode == FS_INODE_FAILURE) {
@@ -48,7 +49,7 @@ bool fs_directory_create(char* path, uint64_t cwd) {
 	fs_directory_entry_t temp_entry = fs_directory_entry_find(parent_inode, name);
 
 	if (temp_entry.type != FS_DIRECTORY_FAILURE) {
-		return false;
+		return FS_DIRECTORY_ENTRY_EXISTS;
 	}
 
 	fs_inode_cache_entry_t* icache = fs_inode_create(FS_INODE_TYPE_DIRECTORY);
@@ -222,7 +223,10 @@ bool fs_directory_entry_del(uint64_t directory_inode, char* name) {
 		}
 
 		if (strcmp_partial(name, block[entry_index].name, block[entry_index].name_length)) {
+			block[entry_index].inode = FS_INODE_FAILURE;
 			block[entry_index].type = FS_DIRECTORY_ENTRY_FREE;
+			block[entry_index].name_length = 0;
+			block[entry_index].name[0] = '\0';
 			fs_data_write_block(data_block, (void*) block);
 			return true;
 		}
@@ -255,6 +259,84 @@ void fs_directory_entry_print(fs_directory_entry_t* entry) {
 	printf("\n");
 }
 
+void fs_path_normalize(char* path, char* cwd_path, char* buffer) {
+	size_t buffer_index = strlen(cwd_path);
+	strcpy(buffer, cwd_path);
+
+	size_t path_length = strlen(path);
+	size_t path_index = 0;
+
+	if (path_length == 0) {
+		return;
+	}
+
+	char path_segment[path_length + 1];
+	size_t path_segment_index = 0;
+
+	bool in_root_directory = false;
+
+	if (strcmp(buffer, "/")) {
+		in_root_directory = true;
+	}
+
+	if (path[0] == '/') {
+		buffer[0] = '/';
+		buffer[1] = '\0';
+		path_index = 1;
+		buffer_index = 1;
+		in_root_directory = true;
+	}
+
+	while (1) {
+		if (path[path_index] == FS_PATH_DELIMITER || path[path_index] == '\0') {
+			path_segment[path_segment_index] = '\0';
+
+			if (strcmp(path_segment, FS_DIRECTORY_PARENT_DIR_NAME)) {
+				if (in_root_directory) {
+					path_segment_index = 0;
+					path_index++;
+
+					if (path[path_index] == '\0') {
+						return;
+					}
+
+					continue;
+				}
+
+				fs_path_to_parent_path(buffer, buffer, 0);
+				buffer_index = strlen(buffer);
+
+				if (buffer_index == 1) {
+					in_root_directory = true;
+				}
+
+			} else if (path_segment_index != 0 && !strcmp(path_segment, FS_DIRECTORY_CURRENT_DIR_NAME)) {
+				if (!in_root_directory) {
+					buffer[buffer_index] = '/';
+					buffer_index++;
+				} else {
+					in_root_directory = false;
+				}
+
+				memcpy((void*) &buffer[buffer_index], (void*) path_segment, path_segment_index + 1);
+				buffer_index = strlen(buffer);
+			}
+
+			if (path[path_index] == '\0') {
+				return;
+			}
+
+			path_segment_index = 0;
+			path_index++;
+			continue;
+		}
+
+		path_segment[path_segment_index] = path[path_index];
+		path_segment_index++;
+		path_index++;
+	}
+}
+
 size_t fs_path_find_last_delimiter(char* path) {
 	size_t path_length = strlen(path);
 	size_t path_index = path_length - 1;
@@ -273,6 +355,18 @@ size_t fs_path_find_last_delimiter(char* path) {
 	}
 
 	return FS_DIRECTORY_FAILURE;
+}
+
+size_t fs_path_delimiter_count(char* path) {
+	size_t delimiter_count = 0;
+
+	for (size_t i = 0; i < strlen(path); i++) {
+		if (path[i] == FS_PATH_DELIMITER) {
+			delimiter_count++;
+		}
+	}
+
+	return delimiter_count;
 }
 
 void fs_path_to_name(char* path, char* buffer) {
@@ -297,16 +391,26 @@ void fs_path_to_name(char* path, char* buffer) {
 	buffer[name_length] = '\0';
 }
 
-void fs_path_to_parent_path(char* path, char* buffer) {
-	size_t path_end = fs_path_find_last_delimiter(path);
+void fs_path_to_parent_path(char* path, char* buffer, size_t index) {
+	size_t path_end = FS_DIRECTORY_FAILURE;
+	strcpy(buffer, path);
 
-	if (path_end == FS_DIRECTORY_FAILURE) {
-		buffer[0] = '\0';
-		return;
+	for (size_t i = 0; i < index + 1; i++) {
+		path_end = fs_path_find_last_delimiter(buffer);
+
+		if (path_end == FS_DIRECTORY_FAILURE) {
+			buffer[0] = '\0';
+			return;
+		}
+
+		memcpy((void*) buffer, (void*) path, path_end);
+		buffer[path_end] = '\0';
 	}
 
-	memcpy((void*) buffer, (void*) path, path_end);
-	buffer[path_end] = '\0';
+	if (path_end == 0) {
+		buffer[0] = '/';
+		buffer[1] = '\0';
+	}
 }
 
 uint64_t fs_path_to_inode(char* path, uint64_t cwd) {
@@ -368,7 +472,7 @@ uint64_t fs_path_to_inode(char* path, uint64_t cwd) {
 
 uint64_t fs_path_to_parent_inode(char* path, uint64_t cwd) {
 	char parent_path[strlen(path) + 1];
-	fs_path_to_parent_path(path, parent_path);
+	fs_path_to_parent_path(path, parent_path, 0);
 
 	uint64_t inode = fs_path_to_inode(parent_path, cwd);
 
