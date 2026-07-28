@@ -9,8 +9,8 @@ extern uint64_t cwd;
 extern char* cwd_path;
 
 void shell_command_touch(Shell_Arguments arguments) {
-	if (arguments.argc < 1) {
-		printf("usage: %s [DIRECTORY NAME] ...", arguments.argv[0]);
+	if (arguments.argc < 2) {
+		printf("usage: %s [FILE PATH] ...", arguments.argv[0]);
 		return;
 	}
 

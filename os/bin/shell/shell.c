@@ -9,12 +9,17 @@
 #include "string.h"
 #include "fs.h"
 
+// when compiler is done, make it such that commands lookup symbols and run the associated symbol that corresponds to a function, no mapping text to function mapping
+
 // move info and test commands under one command, use command line arguments to specify which (info heap, info pmm, etc.)
 // keep spaces during parsing when using "" or ''
 // fix hardcoded cwd path size
+// blinking cursor sometimes incorrect color when vga and shell fore/back colors arent same
 
 extern unsigned char vga_text_cursor_x;
 extern unsigned char vga_text_cursor_y;
+extern unsigned char vga_text_foreground_color;
+extern unsigned char vga_text_background_color;
 
 Shell_Command commands[] = {
 	{ "help", &shell_command_help },
@@ -37,10 +42,8 @@ Shell_Command commands[] = {
 	{ "touch", &shell_command_touch },
 	{ "rm", &shell_command_rm },
 	{ "out", &shell_command_out },
+	{ "edit", &shell_command_edit }
 };
-
-uint16_t shell_command_history_start;
-Shell_Arguments shell_command_history[SHELL_COMMAND_HISTORY_COUNT];
 
 uint8_t shell_foreground_color;
 uint8_t shell_background_color;
@@ -50,6 +53,31 @@ uint8_t shell_input_start_y;
 
 size_t cwd;
 char* cwd_path;
+
+void shell_main(void) {
+	shell_foreground_color = VGA_TEXT_COLOR_LIGHT_GRAY;
+	shell_background_color = VGA_TEXT_COLOR_BLACK;
+
+	vga_text_foreground_color = shell_foreground_color;
+	vga_text_background_color = shell_background_color;
+
+	vga_text_clear_screen();
+	vga_text_blinking_cursor_enable(0, 15);
+
+	cwd = FS_ROOT_DIRECTORY_INODE;
+	cwd_path = malloc(1000);
+	cwd_path = "/";
+
+	while (1) {
+		shell_print_prompt();
+		char* input = shell_get_input();
+		Shell_Arguments arguments = shell_input_parse(input);
+		shell_run_command(arguments);
+		shell_print_spacing();
+	}
+
+	free(cwd_path);
+}
 
 void shell_print_prompt(void) {
 	printf("%s $ ", cwd_path);
@@ -162,15 +190,6 @@ Shell_Arguments shell_input_parse(char* input) {
 	return arguments;
 }
 
-
-void shell_command_history_add(Shell_Arguments arguments) {
-	if (shell_command_history_start >= SHELL_COMMAND_HISTORY_COUNT) {
-		shell_command_history_start -= SHELL_COMMAND_HISTORY_COUNT;
-	}
-
-	shell_command_history[shell_command_history_start++] = arguments;
-}
-
 void shell_run_command(Shell_Arguments arguments) {
 	if (strcmp(arguments.argv[0], "\0")) {
 		return;
@@ -178,7 +197,6 @@ void shell_run_command(Shell_Arguments arguments) {
 
 	for (unsigned short i = 0; i < SHELL_COMMANDS_COUNT; i++) {
 		if (strcmp(commands[i].command, arguments.argv[0])) {
-			shell_command_history_add(arguments);
 			commands[i].function_pointer(arguments);
 			return;
 		}
@@ -186,28 +204,4 @@ void shell_run_command(Shell_Arguments arguments) {
 
 	printf("invalid command '%s'\n", arguments.argv[0]);
 	printf("use 'help' to see valid commands");
-}
-
-void shell_main(void) {
-	shell_command_history_start = 0;
-
-	shell_background_color = VGA_TEXT_COLOR_BLACK;
-	shell_foreground_color = VGA_TEXT_COLOR_WHITE;
-
-	vga_text_clear_screen();
-	vga_text_blinking_cursor_enable(0, 15);
-
-	cwd = FS_ROOT_DIRECTORY_INODE;
-	cwd_path = malloc(1000);
-	cwd_path = "/";
-
-	while (1) {
-		shell_print_prompt();
-		char* input = shell_get_input();
-		Shell_Arguments arguments = shell_input_parse(input);
-		shell_run_command(arguments);
-		shell_print_spacing();
-	}
-
-	free(cwd_path);
 }

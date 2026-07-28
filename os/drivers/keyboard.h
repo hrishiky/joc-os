@@ -1,6 +1,8 @@
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 
+#include "stdint.h"
+
 #define KEYBOARD_PORT_DATA 0x60
 #define KEYBOARD_PORT_STATUS 0x64
 #define KEYBOARD_PORT_COMMAND 0x64
@@ -17,27 +19,19 @@
 #define KEYBOARD_MASK_BREAK 0x80
 
 #define KEYBOARD_EXTENDED 0xE0
-#define KEYBOARD_EXTENDED_SET 1
-#define KEYBOARD_EXTENDED_CLEAR 0
 
-#define KEYBOARD_SHIFT_SET 1
-#define KEYBOARD_SHIFT_CLEAR 0
-#define KEYBOARD_CTRL_SET 1
-#define KEYBOARD_CTRL_CLEAR 0
-#define KEYBOARD_ALT_SET 1
-#define KEYBOARD_ALT_CLEAR 0
-#define KEYBOARD_MAKE_LEFT_SHIFT 0x2A
-#define KEYBOARD_BREAK_LEFT_SHIFT 0x2A
-#define KEYBOARD_MAKE_RIGHT_SHIFT 0x36
-#define KEYBOARD_BREAK_RIGHT_SHIFT 0x36
-#define KEYBOARD_MAKE_CTRL 0x1D
-#define KEYBOARD_BREAK_CTRL 0x1D
-#define KEYBOARD_MAKE_ALT 0x38
-#define KEYBOARD_BREAK_ALT 0x38
-
-#define KEYBOARD_UPPERCASE_OFFSET 0x20
+#define KEYBOARD_UP_ARROW 0x48
+#define KEYBOARD_DOWN_ARROW 0x50
+#define KEYBOARD_LEFT_ARROW 0x4B
+#define KEYBOARD_RIGHT_ARROW 0x4D
+#define KEYBOARD_LEFT_SHIFT 0x2A
+#define KEYBOARD_RIGHT_SHIFT 0x36
+#define KEYBOARD_CTRL 0x1D
+#define KEYBOARD_ALT 0x38
 
 #define KEYBOARD_KEY_CAPSLOCK 0x3A
+
+#define KEYBOARD_UPPERCASE_OFFSET 0x20
 
 #define KEYBOARD_KEY_A 0x1E
 #define KEYBOARD_KEY_B 0x30
@@ -94,24 +88,41 @@
 #define KEYBOARD_KEY_TAB 0x0F
 #define KEYBOARD_KEY_SPACE 0x39
 
+#define KEYBOARD_KEYCODE_BASE 0x1000
+
+#define KEYBOARD_UP_ARROW_SET (KEYBOARD_KEYCODE_BASE + 1)
+#define KEYBOARD_DOWN_ARROW_SET (KEYBOARD_KEYCODE_BASE + 2)
+#define KEYBOARD_LEFT_ARROW_SET (KEYBOARD_KEYCODE_BASE + 3)
+#define KEYBOARD_RIGHT_ARROW_SET (KEYBOARD_KEYCODE_BASE + 4)
+#define KEYBOARD_UP_ARROW_UNSET (KEYBOARD_KEYCODE_BASE + 5)
+#define KEYBOARD_DOWN_ARROW_UNSET (KEYBOARD_KEYCODE_BASE + 6)
+#define KEYBOARD_LEFT_ARROW_UNSET (KEYBOARD_KEYCODE_BASE + 7)
+#define KEYBOARD_RIGHT_ARROW_UNSET (KEYBOARD_KEYCODE_BASE + 8)
+#define KEYBOARD_CTRL_SET (KEYBOARD_KEYCODE_BASE + 9)
+#define KEYBOARD_ALT_SET (KEYBOARD_KEYCODE_BASE + 10)
+#define KEYBOARD_CTRL_UNSET (KEYBOARD_KEYCODE_BASE + 11)
+#define KEYBOARD_ALT_UNSET (KEYBOARD_KEYCODE_BASE + 12)
+
 typedef struct {
-        unsigned char base;
+        uint8_t base;
         char ascii;
 } keyboard_letter_entry;
 
 typedef struct {
-        unsigned char base;
+        uint8_t base;
         char normal;
         char shifted;
 } keyboard_digit_symbol_entry;
 
 typedef struct {
-        unsigned char base;
+        uint8_t base;
         char ascii;
 } keyboard_control_entry;
 
-void keyboard_buffer_write(char character);
+void keyboard_buffer_write(uint16_t keycode);
 char keyboard_buffer_read(void);
-void keyboard_central_handler(unsigned char scancode);
+uint16_t keyboard_get_keycode(void);
+
+void keyboard_central_handler(uint8_t scancode);
 
 #endif

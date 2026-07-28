@@ -1,5 +1,7 @@
 #include "keyboard.h"
 
+#include "stdint.h"
+
 keyboard_letter_entry keyboard_letter_list[] = {
 	{ KEYBOARD_KEY_A, 'a' },
 	{ KEYBOARD_KEY_B, 'b' },
@@ -60,22 +62,27 @@ keyboard_control_entry keyboard_control_list[] = {
 	{ KEYBOARD_KEY_SPACE, ' ' }
 };
 
-unsigned char KEYBOARD_LETTER_COUNT = sizeof(keyboard_letter_list) / sizeof(keyboard_letter_list[0]);
-unsigned char KEYBOARD_DIGIT_SYMBOL_COUNT = sizeof(keyboard_digit_symbol_list) / sizeof(keyboard_digit_symbol_list[0]);
-unsigned char KEYBOARD_CONTROL_COUNT = sizeof(keyboard_control_list) / sizeof(keyboard_control_list[0]);
+uint8_t KEYBOARD_LETTER_COUNT = sizeof(keyboard_letter_list) / sizeof(keyboard_letter_list[0]);
+uint8_t KEYBOARD_DIGIT_SYMBOL_COUNT = sizeof(keyboard_digit_symbol_list) / sizeof(keyboard_digit_symbol_list[0]);
+uint8_t KEYBOARD_CONTROL_COUNT = sizeof(keyboard_control_list) / sizeof(keyboard_control_list[0]);
 
-unsigned char keyboard_shift_down;
-unsigned char keyboard_ctrl_down;
-unsigned char keyboard_alt_down;
-unsigned char keyboard_caps_lock;
-unsigned char keyboard_extended;
+uint8_t keyboard_shift_down;
+uint8_t keyboard_ctrl_down;
+uint8_t keyboard_alt_down;
+uint8_t keyboard_caps_lock;
 
-char keyboard_buffer[KEYBOARD_BUFFER_SIZE];
-unsigned char keyboard_buffer_head;
-unsigned char keyboard_buffer_tail;
+uint8_t keyboard_extended;
+uint8_t keyboard_up_arrow_down;
+uint8_t keyboard_down_arrow_down;
+uint8_t keyboard_left_arrow_down;
+uint8_t keyboard_right_arrow_down;
 
-void keyboard_buffer_write(char character) {
-	keyboard_buffer[keyboard_buffer_head] = character;
+uint16_t keyboard_buffer[KEYBOARD_BUFFER_SIZE];
+uint8_t keyboard_buffer_head;
+uint8_t keyboard_buffer_tail;
+
+void keyboard_buffer_write(uint16_t keycode) {
+	keyboard_buffer[keyboard_buffer_head] = keycode;
 	keyboard_buffer_head = (keyboard_buffer_head + 1) % KEYBOARD_BUFFER_SIZE;
 
 	if (keyboard_buffer_head == keyboard_buffer_tail) {
@@ -88,79 +95,132 @@ char keyboard_buffer_read(void) {
 		return -1;
 	}
 
-	char character = keyboard_buffer[keyboard_buffer_tail];
+	uint16_t character = keyboard_buffer[keyboard_buffer_tail];
+	keyboard_buffer_tail = (keyboard_buffer_tail + 1) % KEYBOARD_BUFFER_SIZE;
+
+	if (character > KEYBOARD_KEYCODE_BASE) {
+		return -1;
+	}
+
+	return (char) character;
+}
+
+uint16_t keyboard_get_keycode(void) {
+	if (keyboard_buffer_head == keyboard_buffer_tail) {
+		return -1;
+	}
+
+	uint16_t character = keyboard_buffer[keyboard_buffer_tail];
 	keyboard_buffer_tail = (keyboard_buffer_tail + 1) % KEYBOARD_BUFFER_SIZE;
 
 	return character;
 }
 
-void keyboard_central_handler(unsigned char scancode) {
+void keyboard_central_handler(uint8_t scancode) {
 	if (scancode == KEYBOARD_EXTENDED) {
-		keyboard_extended = KEYBOARD_EXTENDED_SET;
+		keyboard_extended = 1;
 		return;
 	}
 
-	unsigned char base = scancode & KEYBOARD_MASK_BASE;
+	uint8_t base = scancode & KEYBOARD_MASK_BASE;
 
 	if (scancode & KEYBOARD_MASK_BREAK) {
 		switch (base) {
-			case KEYBOARD_BREAK_LEFT_SHIFT:
-				keyboard_shift_down = KEYBOARD_SHIFT_CLEAR;
+			case KEYBOARD_UP_ARROW:
+				keyboard_up_arrow_down = 0;
+				keyboard_buffer_write(KEYBOARD_UP_ARROW_UNSET);
 				break;
 
-			case KEYBOARD_BREAK_RIGHT_SHIFT:
-				keyboard_shift_down = KEYBOARD_SHIFT_CLEAR;
+			case KEYBOARD_DOWN_ARROW:
+				keyboard_down_arrow_down = 0;
+				keyboard_buffer_write(KEYBOARD_DOWN_ARROW_UNSET);
 				break;
 
-			case KEYBOARD_BREAK_CTRL:
-				keyboard_ctrl_down = KEYBOARD_CTRL_CLEAR;
+			case KEYBOARD_LEFT_ARROW:
+				keyboard_left_arrow_down = 0;
+				keyboard_buffer_write(KEYBOARD_LEFT_ARROW_UNSET);
 				break;
 
-			case KEYBOARD_BREAK_ALT:
-				keyboard_alt_down = KEYBOARD_ALT_CLEAR;
+			case KEYBOARD_RIGHT_ARROW:
+				keyboard_right_arrow_down = 0;
+				keyboard_buffer_write(KEYBOARD_RIGHT_ARROW_UNSET);
+				break;
+
+			case KEYBOARD_LEFT_SHIFT:
+				keyboard_shift_down = 0;
+				break;
+
+			case KEYBOARD_RIGHT_SHIFT:
+				keyboard_shift_down = 0;
+				break;
+
+			case KEYBOARD_CTRL:
+				keyboard_ctrl_down = 0;
+				keyboard_buffer_write(KEYBOARD_CTRL_UNSET);
+				break;
+
+			case KEYBOARD_ALT:
+				keyboard_alt_down = 0;
+				keyboard_buffer_write(KEYBOARD_ALT_UNSET);
 				break;
 		}
 
-		keyboard_extended = KEYBOARD_EXTENDED_CLEAR;
+		keyboard_extended = 0;
 		return;
+
 	} else {
 		if (keyboard_extended) {
 			switch (base) {
-				case KEYBOARD_MAKE_CTRL:
-					keyboard_ctrl_down = KEYBOARD_CTRL_SET;
+				case KEYBOARD_UP_ARROW:
+					keyboard_up_arrow_down = 1;
+					keyboard_buffer_write(KEYBOARD_UP_ARROW_SET);
 					break;
 
-				case KEYBOARD_MAKE_ALT:
-					keyboard_alt_down = KEYBOARD_ALT_SET;
+				case KEYBOARD_DOWN_ARROW:
+					keyboard_down_arrow_down = 1;
+					keyboard_buffer_write(KEYBOARD_DOWN_ARROW_SET);
+					break;
+
+				case KEYBOARD_LEFT_ARROW:
+					keyboard_left_arrow_down = 1;
+					keyboard_buffer_write(KEYBOARD_LEFT_ARROW_SET);
+					break;
+
+				case KEYBOARD_RIGHT_ARROW:
+					keyboard_right_arrow_down = 1;
+					keyboard_buffer_write(KEYBOARD_RIGHT_ARROW_SET);
+					break;
+
+				case KEYBOARD_CTRL:
+					keyboard_ctrl_down = 1;
+					keyboard_buffer_write(KEYBOARD_CTRL_SET);
+					break;
+
+				case KEYBOARD_ALT:
+					keyboard_alt_down = 1;
+					keyboard_buffer_write(KEYBOARD_ALT_SET);
 					break;
 			}
 
-			keyboard_extended = KEYBOARD_EXTENDED_CLEAR;
+			keyboard_extended = 0;
 			return;
 		}
 
 		switch (base) {
-			case KEYBOARD_MAKE_LEFT_SHIFT:
-				keyboard_shift_down = KEYBOARD_SHIFT_SET;
+			case KEYBOARD_LEFT_SHIFT:
+				keyboard_shift_down = 1;
 				return;
 
-			case KEYBOARD_MAKE_RIGHT_SHIFT:
-				keyboard_shift_down = KEYBOARD_SHIFT_SET;
+			case KEYBOARD_RIGHT_SHIFT:
+				keyboard_shift_down = 1;
 				return;
 
-			case KEYBOARD_MAKE_CTRL:
-				keyboard_ctrl_down = KEYBOARD_CTRL_SET;
-				return;
-
-			case KEYBOARD_MAKE_ALT:
-				keyboard_alt_down = KEYBOARD_ALT_SET;
-				return;
 			case KEYBOARD_KEY_CAPSLOCK:
 				keyboard_caps_lock ^= 1;
 				return;
 		}
 
-		for (unsigned char i = 0; i < KEYBOARD_LETTER_COUNT; i++) {
+		for (uint8_t i = 0; i < KEYBOARD_LETTER_COUNT; i++) {
 			if (keyboard_letter_list[i].base == base) {
 				if (keyboard_shift_down ^ keyboard_caps_lock) {
 					keyboard_buffer_write(keyboard_letter_list[i].ascii - KEYBOARD_UPPERCASE_OFFSET);
@@ -172,7 +232,7 @@ void keyboard_central_handler(unsigned char scancode) {
 			}
 		}
 
-		for (unsigned char i = 0; i < KEYBOARD_DIGIT_SYMBOL_COUNT; i++) {
+		for (uint8_t i = 0; i < KEYBOARD_DIGIT_SYMBOL_COUNT; i++) {
 			if (keyboard_digit_symbol_list[i].base == base) {
 				if (keyboard_shift_down ^ keyboard_caps_lock) {
 					keyboard_buffer_write(keyboard_digit_symbol_list[i].shifted);
@@ -184,7 +244,7 @@ void keyboard_central_handler(unsigned char scancode) {
 			}
 		}
 
-		for (unsigned char i = 0; i < KEYBOARD_CONTROL_COUNT; i++) {
+		for (uint8_t i = 0; i < KEYBOARD_CONTROL_COUNT; i++) {
 			if (keyboard_control_list[i].base == base) {
 				keyboard_buffer_write(keyboard_control_list[i].ascii);
 
@@ -195,3 +255,4 @@ void keyboard_central_handler(unsigned char scancode) {
 		return;
 	}
 }
+

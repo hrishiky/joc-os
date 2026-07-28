@@ -11,6 +11,11 @@ extern char* cwd_path;
 #define BUFFER_SIZE 511
 
 void shell_command_out(Shell_Arguments arguments) {
+	if (arguments.argc < 2) {
+		printf("usage: %s [FILE PATH] ...", arguments.argv[0]);
+		return;
+	}
+
 	uint8_t* buffer = malloc(BUFFER_SIZE + 1);
 	void* buf = (void*) buffer;
 

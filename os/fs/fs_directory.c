@@ -135,7 +135,7 @@ fs_directory_entry_t fs_directory_entry_find(uint64_t directory_inode, char* nam
 		memcpy((void*) entry_name, (void*) entry.name, entry.name_length);
 		entry_name[entry.name_length] = '\0';
 
-		if (strcmp(name, entry_name) == 1) {
+		if (strcmp(name, entry_name)) {
 			return entry;
 		}
 	}
@@ -222,7 +222,7 @@ bool fs_directory_entry_del(uint64_t directory_inode, char* name) {
 			fs_data_read_block(data_block, (void*) block);
 		}
 
-		if (strcmp_partial(name, block[entry_index].name, block[entry_index].name_length)) {
+		if (strncmp(name, block[entry_index].name, block[entry_index].name_length)) {
 			block[entry_index].inode = FS_INODE_FAILURE;
 			block[entry_index].type = FS_DIRECTORY_ENTRY_FREE;
 			block[entry_index].name_length = 0;

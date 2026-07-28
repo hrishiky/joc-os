@@ -7,8 +7,8 @@
 extern size_t cwd;
 
 void shell_command_rmdir(Shell_Arguments arguments) {
-	if (arguments.argc < 1) {
-		printf("usage: %s [DIRECTORY NAME] ...", arguments.argv[0]);
+	if (arguments.argc < 2) {
+		printf("usage: %s [DIRECTORY PATH] ...", arguments.argv[0]);
 		return;
 	}
 

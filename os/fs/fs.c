@@ -12,6 +12,8 @@
 
 extern fs_superblock_t superblock;
 
+// exit functions for all caches and run, add exit to some shell command
+
 void fs_init(void) {
 	printf("fs init start\n");
 
@@ -26,6 +28,8 @@ void fs_init(void) {
 		printf("initializing fs superblock... ");
 		fs_superblock_init(FS_SYSTEM_BLOCK_SECTOR_COUNT, FS_SYSTEM_SECTOR_COUNT, FS_SYSTEM_INODE_COUNT);
 		printf("done\n");
+
+		printf("\nbytes_per_block: %d\n", superblock.bytes_per_block);
 
 		printf("initializing fs data handling... ");
 		fs_data_init();
@@ -48,6 +52,8 @@ void fs_init(void) {
 	fs_superblock_load(false);
 	printf("done\n");
 
+	printf("\nbytes_per_block: %d\n", superblock.bytes_per_block);
+
 	printf("loading fs data handling... ");
 	fs_data_load(initialized);
 	printf("done\n");
@@ -63,4 +69,8 @@ void fs_init(void) {
 	printf("fs loading done\n");
 
 	printf("fs init done\n");
+}
+
+void fs_exit(void) {
+	;
 }

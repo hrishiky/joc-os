@@ -9,8 +9,8 @@ extern size_t cwd;
 extern char* cwd_path;
 
 void shell_command_mkdir(Shell_Arguments arguments) {
-	if (arguments.argc < 1) {
-		printf("usage: %s [DIRECTORY NAME] ...", arguments.argv[0]);
+	if (arguments.argc < 2) {
+		printf("usage: %s [DIRECTORY PATH] ...", arguments.argv[0]);
 		return;
 	}
 

@@ -1,19 +1,16 @@
 #ifndef STRING_H
 #define STRING_H
 
-void* memcpy(void* destination, const void* source, unsigned long count);
-void* memset(void* pointer, int value, unsigned long count);
+#include "stdint.h"
+
+void* memcpy(void* destination, const void* source, size_t count);
+void* memmove(void* destination, const void* source, size_t count);
+void* memset(void* pointer, int value, size_t count);
 
 void strcpy(char* destination, char* source);
-unsigned long strlen(char* string);
-unsigned char strcmp(char* string_1, char* string_2);
-unsigned char strcmp_partial(char* string_1, char* string_2, unsigned long length);
-long long strtol(char* string, unsigned char base);
+size_t strlen(char* string);
+uint8_t strcmp(char* string_1, char* string_2);
+uint8_t strncmp(char* string_1, char* string_2, size_t length);
 void strrev(char* string);
-
-// char* string_copy(char* string, char* string_copy, unsigned long start, unsigned long end);
-// char* string_append_character(char* string, char character);
-// char* string_append(char* string, char* string_append);
-// char* string_delete(char* string, unsigned long start, unsigned long end);
 
 #endif

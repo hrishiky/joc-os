@@ -2,7 +2,7 @@
 #include "elf.h"
 
 #define BOOT_INFO_ADDRESS 0x0000000000002000ULL
-#define KERNEL_COUNT 400
+#define KERNEL_COUNT 500
 
 #define UCHAR_MAX 255
 

@@ -1,6 +1,7 @@
 #include "file.h"
 
 #include "fs.h"
+#include "stdio.h"
 #include "stdint.h"
 #include "stdlib.h"
 #include "string.h"
@@ -14,7 +15,7 @@ bool file_create(char* path, size_t cwd, char* cwd_path) {
 	char name[strlen(absolute_path) + 1];
 	fs_path_to_name(absolute_path, name);
 
-	uint64_t parent_inode = fs_path_to_parent_inode(absolute_path, cwd);
+	uint64_t parent_inode = fs_path_to_parent_inode(path, cwd);
 
 	if (parent_inode == FS_INODE_FAILURE) {
 		return false;

@@ -9,5 +9,6 @@
 #include "fs_directory.h"
 
 void fs_init(void);
+void fs_exit(void);
 
 #endif

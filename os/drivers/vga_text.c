@@ -1,6 +1,8 @@
-#include "stdlib.h"
-#include "string.h"
 #include "vga_text.h"
+
+#include "stdlib.h"
+#include "stdint.h"
+#include "string.h"
 #include "asm_wrappers.h"
 
 char* vga = (char*)0xB8000;
@@ -8,8 +10,8 @@ char* vga = (char*)0xB8000;
 long vga_text_cursor_x = 0;
 long vga_text_cursor_y = 0;
 
-unsigned char vga_text_foreground_color = VGA_TEXT_COLOR_LIGHT_GRAY;
-unsigned char vga_text_background_color = VGA_TEXT_COLOR_BLACK;
+uint8_t vga_text_foreground_color = VGA_TEXT_FOREGROUND_COLOR_DEFAULT;
+uint8_t vga_text_background_color = VGA_TEXT_BACKGROUND_COLOR_DEFAULT;
 
 void vga_text_blinking_cursor_enable(unsigned char start, unsigned char end) {
 	outb(0x0A, 0x3D4);
@@ -208,7 +210,7 @@ void vga_text_print_color(char* string, unsigned char foreground_color, unsigned
 void vga_text_print_integer(long long number) {
 	char number_string[255];
 
-	itoa_ll(number, number_string, 10);
+	ll_to_str(number, number_string, 10);
 
 	vga_text_print(number_string);
 }
@@ -216,7 +218,7 @@ void vga_text_print_integer(long long number) {
 void vga_text_print_unsigned_integer(unsigned long long number) {
 	char number_string[255];
 
-	itoa_ull(number, number_string, 10);
+	ull_to_str(number, number_string, 10);
 
 	vga_text_print(number_string);
 }
@@ -224,7 +226,7 @@ void vga_text_print_unsigned_integer(unsigned long long number) {
 void vga_text_print_hex(unsigned long long number) {
 	char number_string[255];
 
-	itoa_ull(number, number_string, 16);
+	ull_to_str(number, number_string, 16);
 
 	vga_text_print(number_string);
 }

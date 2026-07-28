@@ -5,7 +5,7 @@
 #include "stdlib.h"
 #include "string.h"
 
-// dir opening on files should not be possible
+// dir operations on files should not be possible; open, change
 
 dir_t* dir_open(char* path, size_t cwd) {
 	uint64_t inode = fs_path_to_inode(path, cwd);
@@ -89,11 +89,11 @@ bool dir_remove(char* path, size_t cwd) {
 		}
 
 		if (dirent->name_length == FS_DIRECTORY_PARENT_DIR_NAME_LENGTH) {
-			if (!strcmp_partial(dirent->name, FS_DIRECTORY_PARENT_DIR_NAME, FS_DIRECTORY_PARENT_DIR_NAME_LENGTH)) {
+			if (!strncmp(dirent->name, FS_DIRECTORY_PARENT_DIR_NAME, FS_DIRECTORY_PARENT_DIR_NAME_LENGTH)) {
 				return false;
 			}
 		} else {
-			if (!strcmp_partial(dirent->name, FS_DIRECTORY_CURRENT_DIR_NAME, FS_DIRECTORY_CURRENT_DIR_NAME_LENGTH)) {
+			if (!strncmp(dirent->name, FS_DIRECTORY_CURRENT_DIR_NAME, FS_DIRECTORY_CURRENT_DIR_NAME_LENGTH)) {
 				return false;
 			}
 		}

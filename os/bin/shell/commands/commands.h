@@ -23,5 +23,6 @@ extern void shell_command_pwd(Shell_Arguments);
 extern void shell_command_touch(Shell_Arguments);
 extern void shell_command_rm(Shell_Arguments);
 extern void shell_command_out(Shell_Arguments);
+extern void shell_command_edit(Shell_Arguments);
 
 #endif

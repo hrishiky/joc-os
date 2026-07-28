@@ -10,5 +10,5 @@ extern size_t cwd;
 extern char* cwd_path;
 
 void shell_command_temp(Shell_Arguments arguments) {
-	;
+	printf("\x1B_c[17;16]FUN TIME\x1B_r");
 }

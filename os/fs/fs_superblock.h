@@ -34,4 +34,6 @@ bool fs_superblock_load(bool print);
 
 fs_superblock_t fs_superblock_calculate(size_t sectors_per_block, size_t disk_sector_count, size_t inode_count);
 
+void fs_superblock_print(void);
+
 #endif

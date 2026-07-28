@@ -7,8 +7,12 @@
 
 void* malloc(size_t size);
 void free(void* ptr);
+void* realloc(void* ptr, size_t size);
 
-char* itoa_ll(long long number, char* buffer, unsigned char base);
-char* itoa_ull(unsigned long long number, char* buffer, unsigned char base);
+ssize_t ll_to_str(long long number, char* buffer, unsigned char base);
+ssize_t ull_to_str(unsigned long long number, char* buffer, unsigned char base);
+
+int64_t str_to_ll(char* string, uint8_t base);
+uint64_t str_to_ull(char* string, uint8_t base);
 
 #endif

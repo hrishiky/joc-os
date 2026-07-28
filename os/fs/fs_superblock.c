@@ -18,30 +18,8 @@ void fs_superblock_init(size_t sectors_per_block, size_t disk_sector_count, size
 bool fs_superblock_load(bool print) {
 	ata_read(FS_SYSTEM_START_SECTOR, (void*) &superblock, fs_size_to_sectors(sizeof(fs_superblock_t)));
 
-	if (print == true) {
-		printf("magic number: %x | ", superblock.magic_number);
-		printf("start sector: %i | ", superblock.start_sector);
-		printf("sectors per block: %i | ", superblock.block_sector_count);
-		printf("block count: %i | ", superblock.block_count);
-		printf("bytes per sector: %i | ", superblock.bytes_per_sector);
-		printf("bytes per block: %i | ", superblock.bytes_per_block);
-
-		printf("superblock start: %i | ", superblock.superblock_start);
-		printf("superblock block count: %i | ", superblock.superblock_block_count);
-
-		printf("inodes per block: %i | ", superblock.inodes_per_block);
-		printf("inode max count: %i | ", superblock.inode_max_count);
-		printf("inode bitmap start: %i | ", superblock.inode_bitmap_start);
-		printf("inode bitmap block count: %i | ", superblock.inode_bitmap_block_count);
-		printf("inode table start: %i | ", superblock.inode_table_start);
-		printf("inode table block count: %i | ", superblock.inode_table_block_count);
-
-		printf("data bitmap start: %i | ", superblock.data_bitmap_start);
-		printf("data bitmap block count: %i | ", superblock.data_bitmap_block_count);
-		printf("data blocks start: %i | ", superblock.data_blocks_start);
-		printf("data blocks block count: %i", superblock.data_blocks_block_count);
-
-		printf("\n");
+	if (print) {
+		fs_superblock_print();
 	}
 
 	if (superblock.magic_number == FS_SYSTEM_MAGIC_NUMBER) {
@@ -79,4 +57,30 @@ fs_superblock_t fs_superblock_calculate(size_t sectors_per_block, size_t disk_se
 	superblock.data_blocks_block_count = superblock.data_bitmap_block_count * 8;
 
 	return superblock;
+}
+
+void fs_superblock_print(void) {
+	printf("magic number: %x | ", superblock.magic_number);
+	printf("start sector: %i | ", superblock.start_sector);
+	printf("sectors per block: %i | ", superblock.block_sector_count);
+	printf("block count: %i | ", superblock.block_count);
+	printf("bytes per sector: %i | ", superblock.bytes_per_sector);
+	printf("bytes per block: %i | ", superblock.bytes_per_block);
+
+	printf("superblock start: %i | ", superblock.superblock_start);
+	printf("superblock block count: %i | ", superblock.superblock_block_count);
+
+	printf("inodes per block: %i | ", superblock.inodes_per_block);
+	printf("inode max count: %i | ", superblock.inode_max_count);
+	printf("inode bitmap start: %i | ", superblock.inode_bitmap_start);
+	printf("inode bitmap block count: %i | ", superblock.inode_bitmap_block_count);
+	printf("inode table start: %i | ", superblock.inode_table_start);
+	printf("inode table block count: %i | ", superblock.inode_table_block_count);
+
+	printf("data bitmap start: %i | ", superblock.data_bitmap_start);
+	printf("data bitmap block count: %i | ", superblock.data_bitmap_block_count);
+	printf("data blocks start: %i | ", superblock.data_blocks_start);
+	printf("data blocks block count: %i", superblock.data_blocks_block_count);
+
+	printf("\n");
 }

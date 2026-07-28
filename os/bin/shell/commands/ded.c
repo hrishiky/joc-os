@@ -32,4 +32,8 @@ void shell_command_ded(Shell_Arguments arguments) {
 	printf("\t");
 	vga_text_print_character_color(0x81, VGA_TEXT_COLOR_BLUE, vga_text_background_color);
 	printf(" Zakaria\n");
+
+	printf("\t");
+	vga_text_print_character_color(0x0E, VGA_TEXT_COLOR_LIGHT_RED, vga_text_background_color);
+	printf(" Damian\n");
 }

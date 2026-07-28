@@ -1,3 +1,3 @@
 make clean
 make
-make qemu-no-debug
+make qemu
