@@ -1,8 +1,8 @@
 #include "stdio.h"
-#include "fs_inode.h"
-#include "fs_data.h"
 
-void test_file_1(size_t file1_size, size_t file2_size) {
+#include "fs.h"
+
+void test_data_1(size_t file1_size, size_t file2_size) {
 	// size_t file1_size = 10;
 	// size_t file2_size = 5;
 

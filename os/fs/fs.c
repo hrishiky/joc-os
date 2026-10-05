@@ -15,7 +15,7 @@ extern fs_superblock_t superblock;
 // exit functions for all caches and run, add exit to some shell command
 
 void fs_init(void) {
-	printf("fs init start\n");
+	printf("fs init starting\n");
 
 	bool initialized = false;
 
@@ -68,9 +68,12 @@ void fs_init(void) {
 
 	printf("fs loading done\n");
 
-	printf("fs init done\n");
+	printf("fs init done\n\n");
 }
 
 void fs_exit(void) {
+	// inode cache, inode bitmap
+	// data bitmap
+
 	;
 }

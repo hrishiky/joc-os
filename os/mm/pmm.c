@@ -6,7 +6,7 @@
 #include "stdio.h"
 
 Boot_Info* boot_info;
-bool pmm_init_mode = true;
+bool pmm_init_mode;
 extern unsigned char kernel_end;
 
 unsigned int pmm_memory_size = 0;
@@ -113,7 +113,7 @@ int pmm_memory_map_find_free_region(unsigned int page_count) {
 }
 
 void pmm_init(void* boot_info_pointer) {
-	printf("pmm init start\n");
+	printf("pmm init starting\n");
 
 	boot_info = (Boot_Info*) boot_info_pointer;
 	E820_Entry* memory_map = (E820_Entry*) boot_info->entries;

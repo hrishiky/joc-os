@@ -80,7 +80,7 @@ void shell_main(void) {
 }
 
 void shell_print_prompt(void) {
-	printf("%s $ ", cwd_path);
+	printf("$ ");
 
 	shell_input_start_x = vga_text_cursor_x;
 	shell_input_start_y = vga_text_cursor_y;

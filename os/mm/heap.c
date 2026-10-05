@@ -27,7 +27,7 @@ uint64_t heap_order_to_size(uint8_t order) {
 }
 
 void heap_init(void) {
-	printf("heap init start\n");
+	printf("heap init starting\n");
 
 	uint64_t block_start = HEAP_START;
 	uint64_t heap_remaining = HEAP_SIZE;

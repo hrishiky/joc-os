@@ -85,7 +85,7 @@ void idt_irq_setup(void) {
 }
 
 void idt_init(void){
-	printf("idt init start\n");
+	printf("idt init starting\n");
 
 	idt_idt_zero_fill();
 	idt_idtr_zero_fill();

@@ -9,6 +9,7 @@ void shell_command_ded(Shell_Arguments arguments) {
 	printf("dedicated to:\n");
 	printf("\tTerry Davis\n");
 	printf("\tYe\n");
+	printf("\tTu Do\n");
 
 	printf("\n");
 

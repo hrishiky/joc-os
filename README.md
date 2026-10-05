@@ -1,21 +1,37 @@
 # os
 
+![image of os running in QEMU](/image.png)
+
 **information:**
- - simple operating system targeting x86_64 architecture and legacy hardware devices
+ - operating system with monolithic kernel targeting x86_64 architecture and legacy hardware devices
+ - built for learning; simple implemenatations / source code to follow
+ - made with x86_64 assembly and C; build system using Make
+ - features:
+    - bootloader
+    - memory manager
+    - file system (in progress)
+    - shell
+    - text editor (in progress)
 
 **requirements:**
+ - GNU/Linux (for build setup)
  - QEMU (for emulation)
- - GDB (optional; for debugger)
+ - GDB (for debugger; optional)
 
 **build/run instructions:**
  - `make clean` to clean the build
  - `make` to build the disk image
  - `make qemu` to emulate the disk image
- - `./auto.sh` to automatically clean, build, and emulate the disk image
- - `make qemu-debug` to emulate the disk image with gdb debugging
-<br></br>
+ - `./auto.sh` to clean, build, and emulate the disk image
+ - `make qemu-debug` to emulate the disk image with debugger connected
 
 **credits:**
- - `ded` to view dedications (run in the operating system shell)
- - bootloader and early build setup from [Operating Systems: From 0 to 1](https://raw.githubusercontent.com/tuhdo/os01/master/Operating_Systems_From_0_to_1.pdf)
- - physical memory management from [BrokenThorn Entertainment](https://brokenthorn.com/Resources/OSDevIndex.html)
+ - `ded` in os shell to view dedications
+ - bootloader and early build setup: [Operating Systems: From 0 to 1](https://raw.githubusercontent.com/tuhdo/os01/master/Operating_Systems_From_0_to_1.pdf)
+ - physical memory management: [BrokenThorn Entertainment](https://brokenthorn.com/Resources/OSDevIndex.html)
+
+**contribution:**
+ - would appreciate advice via GitHub issues
+ - contributions can be made via pull requests
+
+NO AI GENERATED CODE.

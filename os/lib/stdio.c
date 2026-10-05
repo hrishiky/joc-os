@@ -22,6 +22,7 @@ ssize_t printf(char* format, ...) {
 
 	size_t format_length = strlen(format);
 
+	/* dynamic size output via memory manager
 	char* fstring = malloc(format_length + PRINT_BUFFER_SIZE);
 	size_t buffer_size = format_length + PRINT_BUFFER_SIZE;
 
@@ -44,6 +45,14 @@ ssize_t printf(char* format, ...) {
 			free(fstring);
 			return -1;
 		}
+	}
+	*/
+
+	char fstring[PRINT_BUFFER_SIZE];
+
+	if (vsnprintf(fstring, PRINT_BUFFER_SIZE, format, args) > PRINT_BUFFER_SIZE) {
+		vga_text_print("\nPRINT OVERFLOW\n");
+		return 0;
 	}
 
 	size_t fstring_length = strlen(fstring);
@@ -108,8 +117,6 @@ ssize_t printf(char* format, ...) {
 						}
 					}
 
-
-					// worse than epstein
 					while (fstring[i] != ']') {
 						i++;
 					}

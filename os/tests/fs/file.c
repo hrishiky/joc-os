@@ -1,6 +1,8 @@
 #include "stdio.h"
-#include "fs_inode.h"
-#include "fs_data.h"
+
+#include "fs.h"
+
+extern fs_superblock_t superblock;
 
 bool test_file_1(bool print, size_t file_block_count) {
 	// bool print = true;

@@ -7,7 +7,7 @@
 
 extern unsigned int pmm_memory_size;
 extern bool pmm_init_mode;
-bool vmm_init_mode = true;
+bool vmm_init_mode;
 
 enum {
         PTE_PRESENT = 0x1ULL,
@@ -331,7 +331,7 @@ bool vmm_unmap_page(uint64_t address, page_table_t* pml4) {
 }
 
 void vmm_init(void) {
-	printf("vmm init start\n");
+	printf("vmm init starting\n");
 
 	pmm_init_mode = true;
 	vmm_init_mode = true;
@@ -342,7 +342,7 @@ void vmm_init(void) {
 	void* new_pml4_physical = pmm_alloc_block();
 
 	if (!new_pml4_physical) {
-		printf("could not physically allocate PML4, halting\n");
+		printf("could not allocate pml4, halting\n");
 		__asm__ volatile ("hlt");
 	}
 

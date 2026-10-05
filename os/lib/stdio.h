@@ -6,7 +6,7 @@
 
 #include <stdarg.h>
 
-#define PRINT_BUFFER_SIZE 128
+#define PRINT_BUFFER_SIZE 250
 
 #define FORMAT_SPECIFIER_DELIMITER '%'
 
