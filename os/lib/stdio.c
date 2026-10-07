@@ -146,7 +146,8 @@ ssize_t printf(char* format, ...) {
 		}
 	}
 
-	free(fstring);
+	/* for the dynamic sized print */
+	// free(fstring);
 	va_end(args);
 
 	return characters_printed;
@@ -566,6 +567,18 @@ ssize_t vsnprintf(char* buffer, size_t count, char* format, va_list args) {
 			buffer_index += string_size;
 
 		} else {
+			/*
+			if (format[format_index] == '\0') {
+					if (buffer_index == 10) {
+						buffer[buffer_index] = '\0';
+					} else {
+
+					}
+
+					return buffer_index;
+			}
+			*/
+
 			if (!overflow) {
 				buffer[buffer_index] = format[format_index];
 			}
@@ -839,12 +852,13 @@ size_t format_parse(char* format, format_wrapper_t* format_wrapper, size_t offse
 	}
 
 	*format_wrapper = (format_wrapper_t) {0};
+	size_t format_length = strlen(format);
 	size_t index = offset + 1;
 
 	if (type == FORMAT_PARSE_TYPE_PRINT) {
 		bool exit = false;
 
-		while (1) {
+		while (index < format_length) {
 			switch (format[index]) {
 				case FORMAT_FLAG_LEFT_ALIGN:
 					format_wrapper->left_align = true;
@@ -893,7 +907,7 @@ size_t format_parse(char* format, format_wrapper_t* format_wrapper, size_t offse
 		return 0;
 	}
 
-	while (is_digit(format[index])) {
+	while (is_digit(format[index]) && index < format_length) {
 		uint8_t digit = format[index] - '0';
 
 		if (format_wrapper->width > SSIZE_MAX / 10 || (format_wrapper->width == SSIZE_MAX / 10 && digit > SSIZE_MAX % 10)) {

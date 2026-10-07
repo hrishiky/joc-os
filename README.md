@@ -4,7 +4,7 @@
 
 **information:**
  - operating system with monolithic kernel targeting x86_64 architecture and legacy hardware devices
- - built for learning; simple implemenatations / source code to follow
+ - built for learning via simple  / source code to follow
  - made with x86_64 assembly and C; build system using Make
  - features:
     - bootloader
@@ -19,11 +19,13 @@
  - GDB (for debugger; optional)
 
 **build/run instructions:**
+ - clone the repository and switch to a working commit (commit message has "[ working ]")
  - `make clean` to clean the build
  - `make` to build the disk image
  - `make qemu` to emulate the disk image
- - `./auto.sh` to clean, build, and emulate the disk image
  - `make qemu-debug` to emulate the disk image with debugger connected
+ - `./auto.sh` to clean, build, and emulate the disk image though GUI
+ - `./serial.sh` to clean, build, and emulate the disk image through standard output
 
 **credits:**
  - `ded` in os shell to view dedications

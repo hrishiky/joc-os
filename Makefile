@@ -32,6 +32,9 @@ bootdisk: bootloader os
 qemu:
 	qemu-system-x86_64 -d in_asm,cpu_reset,int,guest_errors -no-reboot -machine pc -drive file=$(DISK_IMG),format=raw,if=ide -boot c
 
+qemu-serial:
+	qemu-system-x86_64 -d in_asm,cpu_reset,int,guest_errors -no-reboot -machine pc -drive file=$(DISK_IMG),format=raw,if=ide -boot c -serial stdio
+
 qemu-debug:
 	qemu-system-x86_64 -d in_asm,cpu_reset,int,guest_errors -no-reboot -machine pc -drive file=$(DISK_IMG),format=raw,if=ide -boot c -gdb tcp::26000 -S
 

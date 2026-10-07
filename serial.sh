@@ -1,3 +1,3 @@
 make clean
 make
-make qemu
+make qemu-serial

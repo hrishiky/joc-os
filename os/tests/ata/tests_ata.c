@@ -1,9 +1,19 @@
+#include "test_ata.h"
+
 #include "stdio.h"
 #include "stdbool.h"
 
 #include "ata.h"
 
-#define TEST_ATA_DISK_SECTOR 500
+bool test_ata(void) {
+	printf("test_ata starting\n");
+
+	if (test_ata_1()) {
+		printf("test_ata_1 passed\n");
+	}
+
+	printf("\ntest_ata done\n");
+}
 
 bool test_ata_1(void) {
 	uint32_t buffer[128];
@@ -25,14 +35,4 @@ bool test_ata_1(void) {
 	}
 
 	return true;
-}
-
-bool test_ata(void) {
-	printf("test_ata starting\n");
-
-	if (test_ata_1()) {
-		printf("test_ata_1 passed\n");
-	}
-
-	printf("\ntest_ata done\n");
 }
