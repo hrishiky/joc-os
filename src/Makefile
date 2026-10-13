@@ -33,7 +33,7 @@ qemu:
 	qemu-system-x86_64 -d in_asm,cpu_reset,int,guest_errors -no-reboot -machine pc -drive file=$(DISK_IMG),format=raw,if=ide -boot c
 
 qemu-stdout:
-	qemu-system-x86_64 -d cpu_reset,int,guest_errors -no-reboot -machine pc -drive file=$(DISK_IMG),format=raw,if=ide -boot c -display curses
+	qemu-system-x86_64 -d cpu_reset,guest_errors -no-reboot -machine pc -drive file=$(DISK_IMG),format=raw,if=ide -boot c -display curses
 
 qemu-debug:
 	qemu-system-x86_64 -d in_asm,cpu_reset,int,guest_errors -no-reboot -machine pc -drive file=$(DISK_IMG),format=raw,if=ide -boot c -gdb tcp::26000 -S

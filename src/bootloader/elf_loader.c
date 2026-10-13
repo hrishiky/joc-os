@@ -1,8 +1,11 @@
 #include "ata.h"
 #include "elf.h"
 
+#define KERNEL_START 0x26
+#define KERNEL_SIZE 500
+#define KERNEL_ADDRESS 0x200000
+
 #define BOOT_INFO_ADDRESS 0x0000000000002000ULL
-#define KERNEL_COUNT 500
 
 #define UCHAR_MAX 255
 
@@ -22,9 +25,9 @@ __attribute__((section(".start")))
 void main(void) {
 	Boot_Info *boot_info = (Boot_Info*) BOOT_INFO_ADDRESS;
 
-	unsigned int lba = 0x00000043;
-	unsigned int count = KERNEL_COUNT;
-	unsigned short* buffer = (unsigned short*) 0x200000;
+	unsigned int lba = KERNEL_START;
+	unsigned int count = KERNEL_SIZE;
+	unsigned short* buffer = (unsigned short*) KERNEL_ADDRESS;
 
 	unsigned int full_count = count / UCHAR_MAX;
 	unsigned int remaining_count = count % UCHAR_MAX;
@@ -35,7 +38,7 @@ void main(void) {
 			ata_read(buffer, UCHAR_MAX);
 
 			lba += UCHAR_MAX;
-			buffer += UCHAR_MAX * 512;
+			buffer += UCHAR_MAX * 256;
 		}
 	}
 

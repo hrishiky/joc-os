@@ -51,7 +51,7 @@ ssize_t printf(char* format, ...) {
 
 	char fstring[PRINT_BUFFER_SIZE];
 
-	if (vsnprintf(fstring, PRINT_BUFFER_SIZE, format, args) > PRINT_BUFFER_SIZE) {
+	if (vsnprintf(fstring, PRINT_BUFFER_SIZE, format, args) >= PRINT_BUFFER_SIZE) {
 		vga_text_print("\nPRINT OVERFLOW\n");
 		return 0;
 	}
@@ -137,13 +137,13 @@ ssize_t printf(char* format, ...) {
 
 					break;
 			}
-
 		} else {
 			if (fstring[i] == '\0') {
 				break;
 			}
 
 			vga_text_print_character(fstring[i]);
+			characters_printed++;
 		}
 	}
 
@@ -157,11 +157,11 @@ ssize_t printf(char* format, ...) {
 ssize_t vsnprintf(char* buffer, size_t size, char* format, va_list args) {
 	format_wrapper_t format_wrapper;
 
-	parser_t format_p;
-	parser_init(&format_p, (void*) format, 0, strlen(format));
-
 	parser_t buffer_p;
 	parser_init(&buffer_p, (void*) buffer, 0, size);
+
+	parser_t format_p;
+	parser_init(&format_p, (void*) format, 0, strlen(format));
 
 	char string_buffer[PRINT_BUFFER_SIZE];
 	size_t string_size = 0;
@@ -590,7 +590,8 @@ ssize_t vsnprintf(char* buffer, size_t size, char* format, va_list args) {
 	return characters_needed;
 }
 
-// take input extra variable as 'n' which contains number of characters consumed
+// take input extra optional variable 'n' at end which is modified to add number of characters consumed
+// check for null terminator along the string
 ssize_t sscanf(char* string, char* format, ...) {
 	va_list args;
 	va_start(args, format);
@@ -606,27 +607,32 @@ ssize_t sscanf(char* string, char* format, ...) {
 
 	format_wrapper_t format_wrapper;
 
-	size_t string_index = 0;
-	size_t format_index = 0;
+	parser_t string_p;
+	parser_init(&string_p, (void*) string, 0, string_length);
 
-	while (1) {
-		if (format[format_index] == FORMAT_SPECIFIER_DELIMITER) {
-			format_index = format_parse(format, &format_wrapper, format_index, FORMAT_PARSE_TYPE_SCAN);
+	parser_t format_p;
+	parser_init(&format_p, (void*) format, 0, format_length);
 
-			if (!format_index) {
+	int seek_return;
+
+	while (format_p.index >= format_p.size && string_p.index >= string_p.size) {
+		if (parser_peek(&format_p) == FORMAT_SPECIFIER_DELIMITER) {
+			seek_return = parser_seek(&format_p, format_parse(format, &format_wrapper, format_p.index, FORMAT_PARSE_TYPE_SCAN), 0);
+			
+			if (seek_return == PARSER_END || seek_return == PARSER_FAIL) {
 				return -1;
 			}
 
 			switch (format_wrapper.specifier) {
 				case FORMAT_SPECIFIER_ESC:
-					format_index++;
+					parser_read(&format_p);
 
 					if (format[format_index] != string[string_index]) {
 						return assignments;
 					}
 
-					string_index++;
-					format_index++;
+					parser_read(&string_p);
+					parser_read(&format_p);
 
 					break;
 
@@ -636,19 +642,18 @@ ssize_t sscanf(char* string, char* format, ...) {
 					}
 
 					if (format_wrapper.skip) {
-						for (size_t i = 0; i < format_wrapper.width; i++) {
-							string_index++;
-						}
-
+						parser_seek(&string_p, PARSER_SEEK_CURRENT, format_wrapper.width);
 						break;
 					}
 
 					char* character = va_arg(args, char*);
 
-					for (size_t i = 0; i < format_wrapper.width; i++) {
-						character[i] = string[string_index];
-						string_index++;
+					if (parser_peek_n(&string_p, format_wrapper.width) == PARSER_END) {
+						return assignments;
 					}
+
+					memcpy(character, &string[string_p.index], format_wrapper.width);
+					parser_seek(&string_p, PARSER_SEEK_CURRENT, format_wrapper.width);
 
 					assignments++;
 
